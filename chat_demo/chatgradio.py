@@ -21,9 +21,9 @@ def predict(message, history):
 with gr.Blocks() as demo:
     chatbot = gr.ChatInterface(
         predict, 
-        examples=["안녕하세요", "피타고라스에 대해 알려줘", "로마제국의 역사 알려줘"],
-        title="Upstage Hackathon 1조",
-        description="Upstage Solar demo 입니다."
+        examples=["How to eat healthy?", "Best Places in Korea", "How to make a chatbot?"],
+        title="Solar Chatbot",
+        description="Upstage Solar Chatbot",
     )
     chatbot.chatbot.height = 400
 
