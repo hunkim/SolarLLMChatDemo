@@ -2,3 +2,4 @@
 .DS_Store
 local_cache
 .venv
+__pycache__/
