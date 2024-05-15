@@ -4,7 +4,7 @@ from langchain_upstage import ChatUpstage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-llm = ChatUpstage()
+llm = ChatUpstage(streaming=True)
 
 def predict(message, history):
     # Change this to your function
@@ -16,7 +16,12 @@ def predict(message, history):
     
     chain = ChatPromptTemplate.from_messages(history_langchain_format) | llm | StrOutputParser()
 
-    return chain.invoke({})
+    generator = chain.stream({})
+
+    assistant = ""
+    for gen in generator:
+        assistant += gen
+        yield assistant
 
 with gr.Blocks() as demo:
     chatbot = gr.ChatInterface(
