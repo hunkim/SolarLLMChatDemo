@@ -1,38 +1,51 @@
 import gradio as gr
 
 from langchain_upstage import ChatUpstage
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
+from langchain.schema import AIMessage, HumanMessage
+
 
 llm = ChatUpstage(streaming=True)
 
-def predict(message, history):
-    # Change this to your function
-    history_langchain_format = [("system", "You are a helpful assistant.")]
+# More general chat
+chat_with_history_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", "You are a helpful assistant."),
+        MessagesPlaceholder(variable_name="history"),
+        ("human", "{message}"),
+    ]
+)
+
+chain = chat_with_history_prompt | llm | StrOutputParser()
+
+
+def chat(message, history):
+    history_langchain_format = []
     for human, ai in history:
-        history_langchain_format += ("human", human)
-        history_langchain_format += ("ai", ai)
-    history_langchain_format += ("human", message)
+        history_langchain_format.append(HumanMessage(content=human))
+        history_langchain_format.append(AIMessage(content=ai))
 
-    print(history_langchain_format)
-    
-    chain = ChatPromptTemplate.from_messages(history_langchain_format) | llm | StrOutputParser()
-
-    generator = chain.stream({})
+    generator = chain.stream({"message": message, "history": history_langchain_format})
 
     assistant = ""
     for gen in generator:
         assistant += gen
         yield assistant
 
+
 with gr.Blocks() as demo:
     chatbot = gr.ChatInterface(
-        predict, 
-        examples=["How to eat healthy?", "Best Places in Korea", "How to make a chatbot?"],
+        chat,
+        examples=[
+            "How to eat healthy?",
+            "Best Places in Korea",
+            "How to make a chatbot?",
+        ],
         title="Solar Chatbot",
         description="Upstage Solar Chatbot",
     )
-    chatbot.chatbot.height = 400
+    chatbot.chatbot.height = 300
 
 if __name__ == "__main__":
     demo.launch()
