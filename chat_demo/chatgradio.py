@@ -13,6 +13,8 @@ def predict(message, history):
         history_langchain_format += ("human", human)
         history_langchain_format += ("ai", ai)
     history_langchain_format += ("human", message)
+
+    print(history_langchain_format)
     
     chain = ChatPromptTemplate.from_messages(history_langchain_format) | llm | StrOutputParser()
 
