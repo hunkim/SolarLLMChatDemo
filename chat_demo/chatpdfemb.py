@@ -137,7 +137,7 @@ with st.sidebar:
             with st.status(f"Vectorizing {len(splits)} splits ..."):
                 # Embed
                 vectorstore = FAISS.from_documents(
-                    documents=splits, embedding=UpstageEmbeddings()
+                    documents=splits, embedding=UpstageEmbeddings(model="solar-embedding-1-large", embed_batch_size=100)
                 )
 
                 st.write("Vectorizing the document done!")
