@@ -5,7 +5,7 @@ STREAMLIT = $(VENV)/bin/streamlit
 GRADIO = $(VENV)/bin/gradio
 
 # Load .env file
-include ../.env
+include .env
 export
 
 $(VENV)/bin/activate: requirements.txt
