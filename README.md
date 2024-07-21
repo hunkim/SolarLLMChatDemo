@@ -1,2 +1,1 @@
-# SolarLLMZeroToAll
-![Overview](./figures/overview.png)
+Moved to https://github.com/upstageAI/cookbook/ 
