@@ -14,7 +14,6 @@ MODEL_NAME = "solar-1-mini-chat"
 if 'MODEL_NAME' in st.secrets:
     MODEL_NAME = st.secrets["MODEL_NAME"]
 st.title("LangChain ChatGPT-like clone")
-st.write(f"This is a simple chatbot that uses the {MODEL_NAME} model to generate responses.")
 
 llm = Chat(model="solar-1-pro-preview")
 
