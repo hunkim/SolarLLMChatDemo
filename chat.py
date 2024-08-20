@@ -15,7 +15,7 @@ if 'MODEL_NAME' in st.secrets:
     MODEL_NAME = st.secrets["MODEL_NAME"]
 st.title("LangChain ChatGPT-like clone")
 
-llm = Chat(model="solar-1-pro-preview")
+llm = Chat(model=MODEL_NAME)
 
 #"""
 # You are a helpful assistant. Answer the following questions considering the history of the conversation:
