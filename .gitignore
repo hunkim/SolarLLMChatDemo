@@ -4,3 +4,4 @@ local_cache
 .venv
 __pycache__/
 chroma_db/
+.streamlit/

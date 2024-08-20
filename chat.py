@@ -8,17 +8,23 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain import hub
 
+
+
+MODEL_NAME = "solar-1-mini-chat"
+if 'MODEL_NAME' in st.secrets:
+    MODEL_NAME = st.secrets["MODEL_NAME"]
 st.title("LangChain ChatGPT-like clone")
+st.write(f"This is a simple chatbot that uses the {MODEL_NAME} model to generate responses.")
 
-llm = Chat()
+llm = Chat(model="solar-1-pro-preview")
 
-"""
- You are a helpful assistant. Answer the following questions considering the history of the conversation:
-
-    Chat history: {chat_history}
-
-    User question: {user_question}
-"""
+#"""
+# You are a helpful assistant. Answer the following questions considering the history of the conversation:
+#
+#    Chat history: {chat_history}
+#
+#    User question: {user_question}
+#"""
 chat_with_history_prompt = hub.pull("hunkim/chat-with-history")
 
 
