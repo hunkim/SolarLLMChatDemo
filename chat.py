@@ -13,9 +13,14 @@ from langchain import hub
 MODEL_NAME = "solar-1-mini-chat"
 if 'MODEL_NAME' in st.secrets:
     MODEL_NAME = st.secrets["MODEL_NAME"]
+
+BASE_URL = "https://api.langchain.com"
+if 'BASE_URL' in st.secrets:
+    BASE_URL = st.secrets["BASE_URL"]
+
 st.title("LangChain ChatGPT-like clone")
 
-llm = Chat(model=MODEL_NAME)
+llm = Chat(model=MODEL_NAME, base_url=BASE_URL)
 
 #"""
 # You are a helpful assistant. Answer the following questions considering the history of the conversation:
