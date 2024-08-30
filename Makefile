@@ -23,6 +23,9 @@ chatpdfemb: $(VENV)/bin/activate
 chatgradio: $(VENV)/bin/activate
 	$(GRADIO) chatgradio.py
 
+search: $(VENV)/bin/activate
+	$(STREAMLIT) run chatyousearch.py
+
 clean:
 	rm -rf __pycache__
 	rm -rf $(VENV)
