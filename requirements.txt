@@ -6,6 +6,4 @@ requests
 streamlit
 st-multimodal-chatinput
 langchain
-langchain-upstage
-langchainhub
 faiss-cpu 

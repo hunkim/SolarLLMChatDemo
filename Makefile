@@ -28,7 +28,7 @@ chatgradio: $(VENV)/bin/activate
 	$(GRADIO) chatgradio.py
 
 search: $(VENV)/bin/activate
-	$(STREAMLIT) run chatyousearch.py
+	$(STREAMLIT) run chatsearch.py --server.port 8503
 
 clean:
 	rm -rf __pycache__
