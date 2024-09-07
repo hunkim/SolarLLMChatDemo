@@ -62,3 +62,12 @@ def prompt_engineering(original_prompt, chat_history=None):
     parsed_output = chain.invoke({"original_prompt": original_prompt, "chat_history": chat_history})
 
     return parsed_output
+
+
+def result_reference_summary(results):
+    results.reverse()
+    result_summary = ""
+    for i, r in enumerate(results):
+        result_summary += f"[{i+1}] {r['title']} - URL: {r['url']}\n{r['content']}\n\n"
+
+    return result_summary

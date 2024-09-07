@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from langchain_upstage import ChatUpstage as Chat
 
-from tavily import TavilyClient
+from langchain_community.tools import DuckDuckGoSearchResults
 
 
 from langchain_core.output_parsers import StrOutputParser
@@ -25,7 +25,8 @@ MODEL_NAME = "solar-pro"
 
 llm = Chat(model=MODEL_NAME)
 
-tavily = TavilyClient()
+ddg_search = DuckDuckGoSearchResults()
+
 
 st.set_page_config(page_title="Search and Chat", page_icon="🔍")
 st.title("SolarLLM Search")
@@ -33,7 +34,8 @@ st.title("SolarLLM Search")
 short_answer_prompt = ChatPromptTemplate.from_messages(
     [
         (
-            "system","""You are Solar, a smart search engine by Upstage, loved by many people. 
+            "system",
+            """You are Solar, a smart search engine by Upstage, loved by many people. 
             
             Write one word answer if you can say "yes", "no", or direct answer. 
             Otherwise just one or two sentense short answer for the query from the given conetxt.
@@ -42,16 +44,20 @@ short_answer_prompt = ChatPromptTemplate.from_messages(
             """,
         ),
         MessagesPlaceholder("chat_history"),
-        ("human", """Query: {user_query} 
+        (
+            "human",
+            """Query: {user_query} 
          ----
-         Context: {context}"""),
+         Context: {context}""",
+        ),
     ]
 )
 
 search_prompt = ChatPromptTemplate.from_messages(
     [
         (
-            "system","""You are Solar, a smart search engine by Upstage, loved by many people. 
+            "system",
+            """You are Solar, a smart search engine by Upstage, loved by many people. 
             
             See the origial query, context, and quick answer, and then provide detailed explanation.
 
@@ -69,12 +75,14 @@ search_prompt = ChatPromptTemplate.from_messages(
             """,
         ),
         MessagesPlaceholder("chat_history"),
-
-        ("human", """Query: {user_query} 
+        (
+            "human",
+            """Query: {user_query} 
          ----
          Short answer: {short_answer}
          ----
-         Context: {context}"""),
+         Context: {context}""",
+        ),
     ]
 )
 
@@ -99,8 +107,7 @@ Orignal query: {query}
 
 # Define your desired data structure.
 class List(BaseModel):
-    items: list[str]
-
+    list[str]
 
 
 def query_context_expansion(query, chat_history, context=None):
@@ -115,7 +122,9 @@ def query_context_expansion(query, chat_history, context=None):
     chain = prompt | llm | parser
     # Invoke the chain with the joke_query.
 
-    parsed_output = chain.invoke({"query": query, "chat_history": chat_history, "context": context})
+    parsed_output = chain.invoke(
+        {"query": query, "chat_history": chat_history, "context": context}
+    )
 
     return parsed_output
 
@@ -131,6 +140,7 @@ def get_short_search(user_query, context, chat_history):
         }
     )
 
+
 def get_search_desc(user_query, short_answer, context, chat_history):
     chain = search_prompt | llm | StrOutputParser()
 
@@ -144,8 +154,6 @@ def get_search_desc(user_query, short_answer, context, chat_history):
     )
 
 
-
-
 def search(query, chat_history, context=None):
     with st.status("Extending query with context to related questions..."):
         q_list = query_context_expansion(query, chat_history, context)
@@ -156,9 +164,8 @@ def search(query, chat_history, context=None):
     # combine all queries with "OR" operator
     or_merged_search_query = " OR ".join(q_list)
     with st.spinner(f"Searching for '{or_merged_search_query}'..."):
-        results = tavily.search(query=or_merged_search_query, max_results=MAX_SEAERCH_RESULTS)["results"]
+        results = ddg_search.invoke(or_merged_search_query)
         return results
-    
 
     for q in q_list:
         with st.spinner(f"Searching for '{q}'..."):
@@ -184,6 +191,7 @@ def result_reference_summary(results):
 
     return result_summary
 
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -200,11 +208,11 @@ if prompt := st.chat_input(q):
         st.markdown(prompt)
 
     r1 = search(prompt, st.session_state.messages)
-    result1_summary = result_summary(r1)
+    result1_summary = str(r1)
 
     r2 = search(prompt, st.session_state.messages, result1_summary[:MAX_TOKENS])
 
-    context = result_reference_summary(r1+r2)
+    context = str(r1 + r2)
     context = context[:MAX_TOKENS]
 
     with st.status("Search Results:"):
