@@ -27,7 +27,7 @@ search: $(VENV)/bin/activate
 	$(STREAMLIT) run chatyousearch.py
 
 discussion: $(VENV)/bin/activate
-	$(STREAMLIT) run discussion.py
+	$(STREAMLIT) run discussion.py --server.port 9093
 
 clean:
 	rm -rf __pycache__
