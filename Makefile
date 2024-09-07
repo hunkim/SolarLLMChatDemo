@@ -30,6 +30,9 @@ chatgradio: $(VENV)/bin/activate
 search: $(VENV)/bin/activate
 	$(STREAMLIT) run chatsearch.py --server.port 8503
 
+discussion: $(VENV)/bin/activate
+	$(STREAMLIT) run discussion.py --server.port 9093
+
 clean:
 	rm -rf __pycache__
 	rm -rf $(VENV)
