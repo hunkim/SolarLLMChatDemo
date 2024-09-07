@@ -26,6 +26,9 @@ chatgradio: $(VENV)/bin/activate
 search: $(VENV)/bin/activate
 	$(STREAMLIT) run chatyousearch.py
 
+discussion: $(VENV)/bin/activate
+	$(STREAMLIT) run discussion.py
+
 clean:
 	rm -rf __pycache__
 	rm -rf $(VENV)
