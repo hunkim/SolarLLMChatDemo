@@ -223,18 +223,22 @@ def get_search_desc(user_query, short_answer, context, chat_history):
 
 
 def search(query, chat_history, context=None):
-    with st.status("Extending query with context to related questions..."):
+    with st.status("Extending query..."):
         q_list = query_context_expansion(query, chat_history, context)
         st.write(q_list)
 
     if not q_list:
+        st.error("No related questions found. Returning empty list.")
         return []
 
     # combine all queries with "OR" operator
     or_merged_search_query = " OR ".join(q_list)
-    with st.spinner(f"Searching for '{or_merged_search_query}'..."):
-        results = ddg_search.invoke(or_merged_search_query)
-        return results
+    results = ""
+    for q in q_list:   
+        with st.spinner(f"Searching for '{q }'..."):
+            results += ddg_search.invoke(q)
+    
+    return results
 
 
 if "messages" not in st.session_state:
