@@ -1,8 +1,9 @@
 gradio==4.29
-langchain_upstage==0.1.4
+langchain_upstage
 duckduckgo-search
 openai
 requests 
 streamlit
 langchain
 faiss-cpu 
+langchainhub
