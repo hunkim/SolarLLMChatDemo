@@ -28,8 +28,8 @@ llm = Chat(model=MODEL_NAME)
 ddg_search = DuckDuckGoSearchResults()
 
 
-st.set_page_config(page_title="Search and Chat", page_icon="🔍")
-st.title("SolarLLM Search")
+st.set_page_config(page_title="Solar Reasoning", page_icon="🤔")
+st.title("Solar Reasoning")
 
 reasoning_examples = """
 ---
