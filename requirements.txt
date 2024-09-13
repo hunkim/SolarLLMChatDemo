@@ -7,3 +7,4 @@ streamlit
 langchain
 faiss-cpu 
 langchainhub
+langchain_community
