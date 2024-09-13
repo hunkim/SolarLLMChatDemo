@@ -270,7 +270,7 @@ if prompt := st.chat_input(q):
         )
 
     for task in tasks:
-        instruction = f"Please provide {task} for the given query, {prompt}. Please only provide the {task}."
+        instruction = f"Please provide {task} for the given query, {prompt} and context and chat history. Please only provide the {task}."
         st.session_state.messages.append(HumanMessage(content=instruction))
         with st.chat_message("user"):
             st.markdown(instruction)
