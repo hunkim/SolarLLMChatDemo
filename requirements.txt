@@ -1,10 +1,9 @@
 gradio==4.29
 langchain_upstage==0.1.4
-tavily-python
+duckduckgo-search
 openai
 requests 
 streamlit
-st-multimodal-chatinput
 langchain
 langchain-upstage
 langchainhub

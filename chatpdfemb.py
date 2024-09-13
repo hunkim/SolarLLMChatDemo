@@ -23,7 +23,7 @@ st.write(
     "This is a conversational AI that can chat with you about your documents! Get your KEY at https://console.upstage.ai/"
 )
 
-llm = ChatUpstage()
+llm = ChatUpstage(model="solar-pro")
 # https://smith.langchain.com/hub/hunkim/rag-qa-with-history
 chat_with_history_prompt = hub.pull("hunkim/rag-qa-with-history")
 
@@ -53,7 +53,7 @@ def query_expander(query):
     # RAG-Fusion: Related
     rag_fusion_template = """You are a helpful assistant that generates multiple search queries based on a single input query. \n
     Generate multiple search queries related to: {query} \n
-    Output (4 queries):"""
+    Output (3 queries):"""
 
     # Decomposition
     decomposition_template = """You are a helpful assistant that generates multiple sub-questions related to an input question. \n
@@ -121,7 +121,7 @@ with st.sidebar:
             with open(file_path, "wb") as f:
                 f.write(uploaded_file.getvalue())
 
-            with st.status("Layout Analyzing ..."):
+            with st.status("Document Parsing ..."):
                 layzer = UpstageLayoutAnalysisLoader(file_path, split="page")
                 # For improved memory efficiency, consider using the lazy_load method to load documents page by page.
                 docs = layzer.load()  # or layzer.lazy_load()
@@ -137,7 +137,7 @@ with st.sidebar:
             with st.status(f"Vectorizing {len(splits)} splits ..."):
                 # Embed
                 vectorstore = FAISS.from_documents(
-                    documents=splits, embedding=UpstageEmbeddings(model="solar-embedding-1-large", embed_batch_size=100)
+                    documents=splits, embedding=UpstageEmbeddings(model="solar-embedding-1-large")
                 )
 
                 st.write("Vectorizing the document done!")
