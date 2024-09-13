@@ -188,11 +188,22 @@ def query_context_expansion(query, chat_history, context=None):
 
 
 def perform_task(chat_history):
+     # Limit chat history to 3000 characters
+    limited_history = []
+    total_length = 0
+    for message in reversed(chat_history):
+        message_length = len(message.content)
+        if total_length + message_length > 3000:
+            break
+        limited_history.insert(0, message)
+        total_length += message_length
+
+
     chain = reasoning_prompt | llm | StrOutputParser()
 
     return chain.stream(
         {
-            "chat_history": chat_history,
+            "chat_history": limited_history,
             "reasoning_examples": reasoning_examples,
         }
     )
