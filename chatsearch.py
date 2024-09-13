@@ -122,11 +122,17 @@ def query_context_expansion(query, chat_history, context=None):
     chain = prompt | llm | parser
     # Invoke the chain with the joke_query.
 
-    parsed_output = chain.invoke(
-        {"query": query, "chat_history": chat_history, "context": context}
-    )
+    for attempt in range(3):
+        try:
+            parsed_output = chain.invoke(
+                {"query": query, "chat_history": chat_history, "context": context}
+            )
+            return parsed_output
+        except Exception as e:
+            st.warning(f"Attempt {attempt + 1} failed. Retrying...")
 
-    return parsed_output
+    st.error("All attempts failed. Returning empty list.")
+    return []
 
 
 def get_short_search(user_query, context, chat_history):
@@ -159,37 +165,14 @@ def search(query, chat_history, context=None):
         q_list = query_context_expansion(query, chat_history, context)
         st.write(q_list)
 
-    results = []
+    if not q_list:
+        return []
 
     # combine all queries with "OR" operator
     or_merged_search_query = " OR ".join(q_list)
     with st.spinner(f"Searching for '{or_merged_search_query}'..."):
         results = ddg_search.invoke(or_merged_search_query)
         return results
-
-    for q in q_list:
-        with st.spinner(f"Searching for '{q}'..."):
-            result = tavily.search(query=q, max_results=MAX_SEAERCH_RESULTS)["results"]
-            results += result
-
-    return results
-
-
-def result_summary(results):
-    result_summary = ""
-    for r in results:
-        result_summary += f"{r['title']} - {r['content']}\n"
-
-    return result_summary
-
-
-def result_reference_summary(results):
-    results.reverse()
-    result_summary = ""
-    for i, r in enumerate(results):
-        result_summary += f"[{i+1}] {r['title']} - URL: {r['url']}\n{r['content']}\n\n"
-
-    return result_summary
 
 
 if "messages" not in st.session_state:

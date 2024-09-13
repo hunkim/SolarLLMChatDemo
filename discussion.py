@@ -64,7 +64,10 @@ discussion_prompt_with_search = ChatPromptTemplate.from_messages(
             If you find something wrong in others' discussion, correct them in a friendly manner in bold.
             Do not talk beyond the topic and do not provide inappropriate language.
 
-            Please speak in a friendly and engaging manner. Speak shortly and clearly about 2~3 sentences. 
+            No need to agree on everything. You can have different opinions and discuss in a friendly manner.
+            Find contradictions and correct them in a harsh manner.It's OK to say I don't agree with you.
+            
+            Speak shortly and clearly about 2~3 sentences. 
             Get to the point first and expand if necessary.
 
             Count each turn and put [Turn n/10] at the only beginning of your discussion only once.
@@ -147,9 +150,13 @@ summary_prompt = ChatPromptTemplate.from_messages(
 
 
 def make_human_last_in_history(chat_history):
-    if not chat_history or isinstance(chat_history[-1], HumanMessage):
-        return chat_history
+    # No need to change if the last message is from human
+    if not chat_history:
+        return []
 
+    if not isinstance(chat_history[-1], AIMessage):
+        return chat_history
+    
     return [
         (
             HumanMessage(content=chat.content)
@@ -261,7 +268,7 @@ if False:
         with st.chat_message(role):
             st.markdown(message.content)
 
-topic = st.text_input("Discussion Topic")
+topic = st.text_input("Discussion Topic", "How to win LLMxLaw Hackathon?")
 use_search = st.toggle("Use Search", False)
 if st.button("Start Discussion"):
     st.session_state.messages = []
