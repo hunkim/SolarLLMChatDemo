@@ -5,6 +5,4 @@ openai
 requests 
 streamlit
 langchain
-langchain-upstage
-langchainhub
 faiss-cpu 

@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from langchain_upstage import ChatUpstage as Chat
 
-from tavily import TavilyClient
+from langchain_community.tools import DuckDuckGoSearchResults
 
 
 from langchain_core.output_parsers import StrOutputParser
@@ -18,92 +18,99 @@ from langchain_core.prompts import (
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.messages import AIMessage, HumanMessage
 
-MAX_TOKENS = 3000
-MAX_SEAERCH_RESULTS = 2
+MAX_TOKENS = 4000
+MAX_SEAERCH_RESULTS = 5
 
-MODEL_NAME = "solar-1-mini-chat"
-if "MODEL_NAME" in st.secrets:
-    MODEL_NAME = st.secrets["MODEL_NAME"]
+MODEL_NAME = "solar-pro"
 
-BASE_URL = "https://api.langchain.com"
-if "BASE_URL" in st.secrets:
-    BASE_URL = st.secrets["BASE_URL"]
+llm = Chat(model=MODEL_NAME)
 
-llm = Chat(model=MODEL_NAME, base_url=BASE_URL)
+ddg_search = DuckDuckGoSearchResults()
 
-tavily = TavilyClient()
 
 st.set_page_config(page_title="Search and Chat", page_icon="🔍")
-st.title("LangChain ChatGPT-like clone")
+st.title("SolarLLM Search")
 
-
-chat_with_history_prompt = ChatPromptTemplate.from_messages(
+short_answer_prompt = ChatPromptTemplate.from_messages(
     [
         (
-            "system","""You are Solar, a smart chatbot by Upstage, loved by many people. 
-            Be smart, cheerful, and fun. 
-            Give engaging answers from the given conetxt and avoid inappropriate language.
+            "system",
+            """You are Solar, a smart search engine by Upstage, loved by many people. 
+            
+            Write one word answer if you can say "yes", "no", or direct answer. 
+            Otherwise just one or two sentense short answer for the query from the given conetxt.
+            Try to understand the user's intention and provide a quick answer.
             If the answer is not in context, please say you don't know and ask to clarify the question.
-
-            When you weite the answer, please cite the source like [1], [2] if possible.
-            Thyen, put all the references including citation number, title, and URL at the end of the answer.
-            Each reference should be in a new line.
             """,
         ),
         MessagesPlaceholder("chat_history"),
-        ("human", "Context {context}\nQuery: {user_query} "),
+        (
+            "human",
+            """Query: {user_query} 
+         ----
+         Context: {context}""",
+        ),
     ]
 )
 
-query_expansion_prompt = """
-For a given query, expand it with related questions and search the web for answers.
-Try to understand the purpose of the query and expand  with upto three related questions 
-to privde answer to the original query. 
-Note that it's for keyword-based search engines, so it should be short and concise.
+search_prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """You are Solar, a smart search engine by Upstage, loved by many people. 
+            
+            See the origial query, context, and quick answer, and then provide detailed explanation.
 
-Please write in json list format like this:
-["number of people in France?", How many people in France?", "France population"]
+            Try to understand the user's intention and provide the relevant information in detail.
+            If the answer is not in context, please say you don't know and ask to clarify the question.
+            Do not repeat the short answer.
 
-Orignal query: {query}
-"""
+            When you write the explnation, please cite the source like [1], [2] if possible.
+            Thyen, put the cited references including citation number, title, and URL at the end of the answer.
+            Each reference should be in a new line in the markdown format like this:
+
+            [1] Title - URL
+            [2] Title - URL
+            ...
+            """,
+        ),
+        MessagesPlaceholder("chat_history"),
+        (
+            "human",
+            """Query: {user_query} 
+         ----
+         Short answer: {short_answer}
+         ----
+         Context: {context}""",
+        ),
+    ]
+)
+
 
 query_context_expansion_prompt = """
-For a given query and context, expand it with related questions and search the web for answers.
+For a given query and context(if provided), expand it with related questions and search the web for answers.
 Try to understand the purpose of the query and expand  with upto three related questions 
 to privde answer to the original query. 
 Note that it's for keyword-based search engines, so it should be short and concise.
 
-Please write in json list format like this:
+Please write in Python LIST format like this:
 ["number of people in France?", How many people in France?", "France population"]
 
+---
 Context: {context}
+----
+History: {chat_history}
+---
 Orignal query: {query}
 """
 
 
 # Define your desired data structure.
 class List(BaseModel):
-    items: list[str]
+    list[str]
 
 
-def query_expansion(query):
-    # Set up a parser + inject instructions into the prompt template.
-    parser = JsonOutputParser(pydantic_object=List)
-
-    prompt = PromptTemplate(
-        template=query_expansion_prompt,
-        input_variables=["query"],
-    )
-
-    chain = prompt | llm | parser
-    # Invoke the chain with the joke_query.
-
-    parsed_output = chain.invoke({"query": query})
-
-    return parsed_output
-
-
-def query_context_expansion(query, context):
+def query_context_expansion(query, chat_history, context=None):
     # Set up a parser + inject instructions into the prompt template.
     parser = JsonOutputParser(pydantic_object=List)
 
@@ -115,13 +122,15 @@ def query_context_expansion(query, context):
     chain = prompt | llm | parser
     # Invoke the chain with the joke_query.
 
-    parsed_output = chain.invoke({"query": query, "context": context})
+    parsed_output = chain.invoke(
+        {"query": query, "chat_history": chat_history, "context": context}
+    )
 
     return parsed_output
 
 
-def get_response(user_query, context, chat_history):
-    chain = chat_with_history_prompt | llm | StrOutputParser()
+def get_short_search(user_query, context, chat_history):
+    chain = short_answer_prompt | llm | StrOutputParser()
 
     return chain.stream(
         {
@@ -132,26 +141,32 @@ def get_response(user_query, context, chat_history):
     )
 
 
-def search1(query):
-    with st.status("Extending query to related questions..."):
-        q_list = query_expansion(query)
-        st.write(q_list)
+def get_search_desc(user_query, short_answer, context, chat_history):
+    chain = search_prompt | llm | StrOutputParser()
 
-    results = []
-    for q in q_list:
-        with st.spinner(f"Searching for '{q}'..."):
-            result = tavily.search(query=q, max_results=MAX_SEAERCH_RESULTS)["results"]
-            results += result
+    return chain.stream(
+        {
+            "context": context,
+            "chat_history": chat_history,
+            "user_query": user_query,
+            "short_answer": short_answer,
+        }
+    )
 
-    return results
 
-
-def search2(query, context):
+def search(query, chat_history, context=None):
     with st.status("Extending query with context to related questions..."):
-        q_list = query_context_expansion(query, context)
+        q_list = query_context_expansion(query, chat_history, context)
         st.write(q_list)
 
     results = []
+
+    # combine all queries with "OR" operator
+    or_merged_search_query = " OR ".join(q_list)
+    with st.spinner(f"Searching for '{or_merged_search_query}'..."):
+        results = ddg_search.invoke(or_merged_search_query)
+        return results
+
     for q in q_list:
         with st.spinner(f"Searching for '{q}'..."):
             result = tavily.search(query=q, max_results=MAX_SEAERCH_RESULTS)["results"]
@@ -169,11 +184,13 @@ def result_summary(results):
 
 
 def result_reference_summary(results):
+    results.reverse()
     result_summary = ""
     for i, r in enumerate(results):
         result_summary += f"[{i+1}] {r['title']} - URL: {r['url']}\n{r['content']}\n\n"
 
     return result_summary
+
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -190,19 +207,22 @@ if prompt := st.chat_input(q):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    r1 = search1(prompt)
-    result1_summary = result_summary(r1)
+    r1 = search(prompt, st.session_state.messages)
+    result1_summary = str(r1)
 
-    r2 = search2(prompt, result1_summary[:MAX_TOKENS])
+    r2 = search(prompt, st.session_state.messages, result1_summary[:MAX_TOKENS])
 
-    context = result_reference_summary(r1+r2)
+    context = str(r1 + r2)
     context = context[:MAX_TOKENS]
 
     with st.status("Search Results:"):
         st.write(context)
 
     with st.chat_message("assistant"):
-        response = st.write_stream(
-            get_response(prompt, context, st.session_state.messages)
+        short_answer = st.write_stream(
+            get_short_search(prompt, context, st.session_state.messages)
         )
-    st.session_state.messages.append(AIMessage(content=response))
+        desc = st.write_stream(
+            get_search_desc(prompt, short_answer, context, st.session_state.messages)
+        )
+    st.session_state.messages.append(AIMessage(content=short_answer + desc))
