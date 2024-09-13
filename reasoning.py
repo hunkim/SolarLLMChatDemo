@@ -234,7 +234,7 @@ for message in st.session_state.messages:
     with st.chat_message(role):
         st.markdown(message.content)
 
-q = "How to use residence parking permit in palo alto?"
+q = "3.9 vs 3.11. Which one is bigger?"
 
 tasks = ["Reasoning", "Reasoning Chains", "Final Answer"]
 
