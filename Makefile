@@ -4,10 +4,6 @@ PIP = $(VENV)/bin/pip3
 STREAMLIT = $(VENV)/bin/streamlit
 GRADIO = $(VENV)/bin/gradio
 
-# Load .env file
-include .env
-export
-
 $(VENV)/bin/activate: requirements.txt
 	python3 -m venv $(VENV)
 	$(PIP) install -r requirements.txt
@@ -29,6 +25,9 @@ chatgradio: $(VENV)/bin/activate
 
 search: $(VENV)/bin/activate
 	$(STREAMLIT) run chatsearch.py --server.port 8503
+
+reasoning: $(VENV)/bin/activate
+	$(STREAMLIT) run reasoning.py 
 
 discussion: $(VENV)/bin/activate
 	$(STREAMLIT) run discussion.py --server.port 9093

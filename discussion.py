@@ -15,7 +15,7 @@ from langchain_community.tools import DuckDuckGoSearchResults
 
 
 st.set_page_config(page_title="Discuss", page_icon="🗣️")
-st.title("(Self)Discuss with Solar")
+st.title("Self-debating Solar Pro Preview")
 
 MODEL_NAME = "solar-pro"
 llm = Chat(model=MODEL_NAME)
@@ -268,7 +268,7 @@ if False:
         with st.chat_message(role):
             st.markdown(message.content)
 
-topic = st.text_input("Discussion Topic", "How to win LLMxLaw Hackathon?")
+topic = st.text_input("Discussion Topic", "How can I win LLM/AI hackathon?")
 use_search = st.toggle("Use Search", False)
 if st.button("Start Discussion"):
     st.session_state.messages = []
