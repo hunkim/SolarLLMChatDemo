@@ -77,7 +77,7 @@ def create_excel_grade(students_data):
     ws = wb.active
     ws.title = "Grades"
 
-    ws["A1"] = "Student Name"
+    ws["A1"] = "File Name"
     ws["B1"] = "Score"
 
     for row, (name, score) in enumerate(students_data, start=2):
