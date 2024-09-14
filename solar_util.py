@@ -6,10 +6,13 @@ from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_core.pydantic_v1 import BaseModel, Field
 
+from tokenizers import Tokenizer
+
 
 MODEL_NAME = "solar-pro"
 llm = Chat(model=MODEL_NAME)
 
+solar_tokenizer = Tokenizer.from_pretrained("upstage/solar-pro-preview-tokenizer")
 
 # Define your desired data structure.
 # {"original_prompt": "original prompt", "enhanced_prompt": "enhanced prompt", "techniques": "technique"}
@@ -71,3 +74,10 @@ def result_reference_summary(results):
         result_summary += f"[{i+1}] {r['title']} - URL: {r['url']}\n{r['content']}\n\n"
 
     return result_summary
+
+def num_of_tokens(text):
+    return len(solar_tokenizer.encode(text).ids)
+
+
+if __name__ == "__main__":
+   print(num_of_tokens("Hello, world!"))

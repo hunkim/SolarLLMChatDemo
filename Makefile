@@ -38,6 +38,9 @@ llama: $(VENV)/bin/activate
 hw: $(VENV)/bin/activate
 	$(STREAMLIT) run hw.py
 
+util: $(VENV)/bin/activate
+	$(PYTHON) solar_util.py
+
 clean:
 	rm -rf __pycache__
 	rm -rf $(VENV)

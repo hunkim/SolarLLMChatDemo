@@ -10,3 +10,4 @@ faiss-cpu
 langchainhub
 langchain_community
 watchdog
+tokenizers

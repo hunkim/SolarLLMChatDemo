@@ -18,7 +18,9 @@ from langchain_core.prompts import (
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.messages import AIMessage, HumanMessage
 
-MAX_TOKENS = 5000
+from solar_util import num_of_tokens
+
+MAX_TOKENS = 2500
 MAX_SEARCH_TOKENS = 700
 MAX_SEAERCH_RESULTS = 5
 
@@ -194,7 +196,7 @@ def perform_task(chat_history):
     limited_history = []
     total_length = 0
     for message in reversed(chat_history):
-        message_length = len(message.content)
+        message_length = num_of_tokens(message.content)
         if total_length + message_length > MAX_TOKENS:
             st.warning("Chat history is too long. Truncating.")
             break
