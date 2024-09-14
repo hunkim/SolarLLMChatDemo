@@ -257,25 +257,28 @@ q = "3.9 vs 3.11. Which one is bigger?"
 
 tasks = ["Reasoning (No conclusion)", "Reasoning Chains", "Final Answer"]
 
+search_on = st.checkbox("Search on the web", value=False)
+
 if prompt := st.chat_input(q):
 
-    search_result = search(prompt, st.session_state.messages)
+    if search_on:
+        search_result = search(prompt, st.session_state.messages)
 
-    with st.status("Search Results:"):
-        st.write(search_result)
+        with st.status("Search Results:"):
+            st.write(search_result)
 
-    if search_result:
-        search_result = str(search_result)[:MAX_SEARCH_TOKENS]
-        st.session_state.messages.append(
-            HumanMessage(
-                content=f"FYI search result conext: {search_result} for the query, {prompt}"
+        if search_result:
+            search_result = str(search_result)[:MAX_SEARCH_TOKENS]
+            st.session_state.messages.append(
+                HumanMessage(
+                    content=f"FYI search result conext: {search_result} for the query, {prompt}"
+                )
             )
-        )
-        st.session_state.messages.append(
-            AIMessage(
-                content="Thanks for the information! I will keep in mind. Give me the instruction."
+            st.session_state.messages.append(
+                AIMessage(
+                    content="Thanks for the information! I will keep in mind. Give me the instruction."
+                )
             )
-        )
 
     for task in tasks:
         instruction = f"""Please provide {task} for the given query,and context and chat history. 
