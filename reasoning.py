@@ -281,8 +281,8 @@ if prompt := st.chat_input(q):
             )
 
     for task in tasks:
-        instruction = f"""Please provide {task} for the given query,and context and chat history. 
-        Please only provide the {task} and do not include other information.
+        instruction = f"""Please provide "{task}" for the given query,and context and chat history. 
+        Please only provide the "{task}" and do not include other information.
         ---
         User Query: 
         {prompt}"""
