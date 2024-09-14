@@ -19,6 +19,7 @@ from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.messages import AIMessage, HumanMessage
 
 MAX_TOKENS = 4000
+MAX_SEARCH_TOKENS = 1000
 MAX_SEAERCH_RESULTS = 5
 
 MODEL_NAME = "solar-pro"
@@ -261,8 +262,8 @@ if prompt := st.chat_input(q):
     with st.status("Search Results:"):
         st.write(search_result)
 
-    if len(search_result) > 100:
-        search_result = str(search_result)[:MAX_SEAERCH_RESULTS]
+    if search_result:
+        search_result = str(search_result)[:MAX_SEARCH_TOKENS]
         st.session_state.messages.append(
             HumanMessage(
                 content=f"FYI search result conext: {search_result} for the query, {prompt}"

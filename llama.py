@@ -447,7 +447,7 @@ if prompt := st.chat_input(q):
         st.write(search_result)
 
     if search_result:
-        search_result = str(search_result)[:MAX_SEAERCH_RESULTS]
+        search_result = str(search_result)
         st.session_state.messages.append(
             HumanMessage(
                 content=f"FYI search result conext: {search_result} for the query, {prompt}"
