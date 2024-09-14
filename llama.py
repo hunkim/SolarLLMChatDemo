@@ -437,7 +437,7 @@ for message in st.session_state.messages:
 
 q = "3.9 vs 3.11. Which one is bigger?"
 
-tasks = ["Reasoning", "Reasoning Chains", "Final Answer"]
+tasks = ["Reasoning (No conclusion)", "Reasoning Chains", "Final Answer"]
 
 if prompt := st.chat_input(q):
 
