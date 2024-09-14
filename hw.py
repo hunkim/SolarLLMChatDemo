@@ -5,19 +5,12 @@ from langchain_upstage import (
     UpstageLayoutAnalysisLoader,
     UpstageGroundednessCheck,
     ChatUpstage,
-    UpstageEmbeddings,
 )
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.messages import AIMessage, HumanMessage
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import FAISS
 from langchain.prompts import ChatPromptTemplate
-from langchain.load import dumps, loads
 
 import tempfile, os
 import zipfile
-
-from langchain import hub
 
 st.title("Solar HW Grader")
 st.write(
@@ -26,7 +19,7 @@ st.write(
 
 llm = ChatUpstage(model="solar-pro")
 
-hw_prompt =  ChatPromptTemplate.from_messages(
+hw_prompt = ChatPromptTemplate.from_messages(
     [
         (
             "system",
@@ -56,7 +49,6 @@ def get_response(retrieved_docs):
     )
 
 
-
 def process_pdf_file(file_path):
     with st.status(f"Document Parsing {file_path}..."):
         layzer = UpstageLayoutAnalysisLoader(file_path, split="page")
@@ -67,10 +59,12 @@ def process_pdf_file(file_path):
         st.markdown(f"Grading {file_path}")
 
     with st.chat_message("assistant"):
-       st.write_stream(get_response(docs))
+        st.write_stream(get_response(docs))
 
 
-uploaded_file = st.file_uploader("Choose your `.pdf` or `.zip` file", type=["pdf", "zip"])
+uploaded_file = st.file_uploader(
+    "Choose your `.pdf` or `.zip` file", type=["pdf", "zip"]
+)
 
 if uploaded_file and not uploaded_file.name in st.session_state:
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -95,5 +89,3 @@ if uploaded_file and not uploaded_file.name in st.session_state:
                     if file.endswith(".pdf"):
                         pdf_path = os.path.join(temp_dir, file)
                         process_pdf_file(pdf_path)
-
-
