@@ -66,27 +66,6 @@ Reasoning: 1. Start with the given setting: a cooking class with three friends d
 
 Reasoning Chains: [{'step': 1, 'thought': 'Start with the given setting: a cooking class with three friends discussing the science behind culinary techniques.'}, {'step': 2, 'thought': "Introduce the topic of resting meat after cooking, with Mike asking Jane if she's ever wondered about it."}, {'step': 3, 'thought': 'Have Sarah explain the science behind resting meat, mentioning denatured proteins and juice redistribution.'}, {'step': 4, 'thought': "Address the user's question about resting meat, with Sarah confirming that it allows juices to redistribute."}, {'step': 5, 'thought': 'Move on to the topic of adding salt to water, with Mike mentioning its effect on boiling point.'}, {'step': 6, 'thought': "Have Sarah explain the science behind salt's effect on boiling point, mentioning the higher temperature required for boiling."}, {'step': 7, 'thought': "Address the user's question about cooking speed, with Sarah explaining that it's slightly faster due to the hotter water."}, {'step': 8, 'thought': 'Introduce the topic of acids in cooking, with Mike mentioning their use in brightening dishes.'}, {'step': 9, 'thought': "Have Sarah explain the science behind acids' effects on flavor and tenderizing meats."}, {'step': 10, 'thought': "Address the user's question about baking, with Mike mentioning the science involved in baking and Sarah explaining the role of gluten and leavening agents."}, {'step': 11, 'thought': 'Conclude the conversation with the characters expressing their fascination with the science behind cooking and their excitement to continue learning and experimenting.'}]
 ----
-Example 3:
-
-Instruction: Create a C++ program that connects to a Cassandra database and performs basic CRUD operations (Create, Read, Update, Delete) on a table containing employee information (ID, name, department, salary). Use prepared statements for queries and ensure proper error handling.
- None
-
-Reasoning: 1. Understand the instruction: Create a C++ program that connects to a Cassandra database and performs basic CRUD operations on a table containing employee information using prepared statements and proper error handling.
-2. Identify required libraries: Include the necessary libraries for connecting to Cassandra and handling errors.
-3. Establish a connection to the Cassandra cluster: Create a cluster and session object, set the contact points, and connect to the cluster.
-4. Create a keyspace and table for employee information: Write the CQL queries for creating the keyspace and table, execute them, and handle any errors.
-5. Prepare CRUD statements: Write the CQL queries for insert, select, update, and delete operations, and prepare them using the Cassandra session.
-6. Perform basic CRUD operations using prepared statements:
-   a. Insert an employee record: Generate a UUID for the employee ID, bind the prepared insert statement with the employee data, and execute the query.
-   b. Read the inserted employee record: Bind the prepared select statement with the employee ID, execute the query, and display the employee information.
-   c. Update the employee's salary: Bind the prepared update statement with the new salary and employee ID, and execute the query.
-   d. Delete the employee record: Bind the prepared delete statement with the employee ID, and execute the query.
-7. Handle errors: Check the error codes for each query execution and print error messages if necessary.
-8. Clean up and close the connection: Free the prepared statements, UUID generator, and close the session and cluster objects.
-9. Compile and run the program: Provide instructions for installing the DataStax C/C++ driver, compiling the program, and running it with a local Cassandra cluster.
-
-Reasoning Chains: [{'step': 1, 'thought': 'Understand the instruction: Create a C++ program that connects to a Cassandra database and performs basic CRUD operations on a table containing employee information using prepared statements and proper error handling.'}, {'step': 2, 'thought': 'Identify required libraries: Include the necessary libraries for connecting to Cassandra and handling errors.'}, {'step': 3, 'thought': 'Establish a connection to the Cassandra cluster: Create a cluster and session object, set the contact points, and connect to the cluster.'}, {'step': 4, 'thought': 'Create a keyspace and table for employee information: Write the CQL queries for creating the keyspace and table, execute them, and handle any errors.'}, {'step': 5, 'thought': 'Prepare CRUD statements: Write the CQL queries for insert, select, update, and delete operations, and prepare them using the Cassandra session.'}, {'step': 6, 'thought': "Perform basic CRUD operations using prepared statements:\n   a. Insert an employee record: Generate a UUID for the employee ID, bind the prepared insert statement with the employee data, and execute the query.\n   b. Read the inserted employee record: Bind the prepared select statement with the employee ID, execute the query, and display the employee information.\n   c. Update the employee's salary: Bind the prepared update statement with the new salary and employee ID, and execute the query.\n   d. Delete the employee record: Bind the prepared delete statement with the employee ID, and execute the query."}, {'step': 7, 'thought': 'Handle errors: Check the error codes for each query execution and print error messages if necessary.'}, {'step': 8, 'thought': 'Clean up and close the connection: Free the prepared statements, UUID generator, and close the session and cluster objects.'}, {'step': 9, 'thought': 'Compile and run the program: Provide instructions for installing the DataStax C/C++ driver, compiling the program, and running it with a local Cassandra cluster.'}]
----
 """
 
 reasoning_prompt = ChatPromptTemplate.from_messages(
@@ -298,7 +277,7 @@ if prompt := st.chat_input(q):
 
     for task in tasks:
         instruction = f"""Please provide {task} for the given query,and context and chat history. 
-        Please only provide the {task}.
+        Please only provide the {task} and do not include other information.
         ---
         User Query: 
         {prompt}"""
