@@ -281,7 +281,7 @@ if prompt := st.chat_input(q):
         {prompt}"""
         st.session_state.messages.append(HumanMessage(content=instruction))
         with st.chat_message("user"):
-            st.markdown(instruction)
+            st.write(instruction)
         with st.chat_message("assistant"):
             response = st.write_stream(perform_task(st.session_state.messages))
         st.session_state.messages.append(AIMessage(content=response))
