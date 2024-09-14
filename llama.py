@@ -17,7 +17,7 @@ from langchain_core.prompts import (
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.messages import AIMessage, HumanMessage
 
-MAX_TOKENS = 4000
+MAX_TOKENS = 40000
 MAX_SEAERCH_RESULTS = 5
 
 MODEL_NAME = "llama-3.1-70b-versatile"
@@ -378,7 +378,8 @@ def perform_task(chat_history):
     total_length = 0
     for message in reversed(chat_history):
         message_length = len(message.content)
-        if total_length + message_length > 3000:
+        if total_length + message_length > MAX_TOKENS:
+            st.warning("Chat history is too long. Truncating to fit model input.")
             break
         limited_history.insert(0, message)
         total_length += message_length
@@ -436,7 +437,7 @@ for message in st.session_state.messages:
 
 q = "3.9 vs 3.11. Which one is bigger?"
 
-tasks = ["Reasoning", "Reasoning Chains", "Final Answer"]
+tasks = ["Reasoning (No conclusion)", "Reasoning Chains", "Final Answer"]
 
 if prompt := st.chat_input(q):
 
@@ -446,7 +447,7 @@ if prompt := st.chat_input(q):
         st.write(search_result)
 
     if search_result:
-        search_result = str(search_result)[:MAX_SEAERCH_RESULTS]
+        search_result = str(search_result)
         st.session_state.messages.append(
             HumanMessage(
                 content=f"FYI search result conext: {search_result} for the query, {prompt}"

@@ -11,3 +11,5 @@ langchainhub
 langchain_community
 watchdog
 openpyxl==3.1.5
+tokenizers
+

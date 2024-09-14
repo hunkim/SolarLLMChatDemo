@@ -18,7 +18,10 @@ from langchain_core.prompts import (
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.messages import AIMessage, HumanMessage
 
-MAX_TOKENS = 4000
+from solar_util import num_of_tokens
+
+MAX_TOKENS = 2500
+MAX_SEARCH_TOKENS = 700
 MAX_SEAERCH_RESULTS = 5
 
 MODEL_NAME = "solar-pro"
@@ -65,6 +68,7 @@ Reasoning: 1. Start with the given setting: a cooking class with three friends d
 11. Conclude the conversation with the characters expressing their fascination with the science behind cooking and their excitement to continue learning and experimenting.
 
 Reasoning Chains: [{'step': 1, 'thought': 'Start with the given setting: a cooking class with three friends discussing the science behind culinary techniques.'}, {'step': 2, 'thought': "Introduce the topic of resting meat after cooking, with Mike asking Jane if she's ever wondered about it."}, {'step': 3, 'thought': 'Have Sarah explain the science behind resting meat, mentioning denatured proteins and juice redistribution.'}, {'step': 4, 'thought': "Address the user's question about resting meat, with Sarah confirming that it allows juices to redistribute."}, {'step': 5, 'thought': 'Move on to the topic of adding salt to water, with Mike mentioning its effect on boiling point.'}, {'step': 6, 'thought': "Have Sarah explain the science behind salt's effect on boiling point, mentioning the higher temperature required for boiling."}, {'step': 7, 'thought': "Address the user's question about cooking speed, with Sarah explaining that it's slightly faster due to the hotter water."}, {'step': 8, 'thought': 'Introduce the topic of acids in cooking, with Mike mentioning their use in brightening dishes.'}, {'step': 9, 'thought': "Have Sarah explain the science behind acids' effects on flavor and tenderizing meats."}, {'step': 10, 'thought': "Address the user's question about baking, with Mike mentioning the science involved in baking and Sarah explaining the role of gluten and leavening agents."}, {'step': 11, 'thought': 'Conclude the conversation with the characters expressing their fascination with the science behind cooking and their excitement to continue learning and experimenting.'}]
+----
 """
 
 reasoning_prompt = ChatPromptTemplate.from_messages(
@@ -192,8 +196,9 @@ def perform_task(chat_history):
     limited_history = []
     total_length = 0
     for message in reversed(chat_history):
-        message_length = len(message.content)
-        if total_length + message_length > 3000:
+        message_length = num_of_tokens(message.content)
+        if total_length + message_length > MAX_TOKENS:
+            st.warning("Chat history is too long. Truncating.")
             break
         limited_history.insert(0, message)
         total_length += message_length
@@ -232,7 +237,6 @@ def search(query, chat_history, context=None):
         return []
 
     # combine all queries with "OR" operator
-    or_merged_search_query = " OR ".join(q_list)
     results = ""
     for q in q_list:   
         with st.spinner(f"Searching for '{q }'..."):
@@ -251,31 +255,34 @@ for message in st.session_state.messages:
 
 q = "3.9 vs 3.11. Which one is bigger?"
 
-tasks = ["Reasoning", "Reasoning Chains", "Final Answer"]
+tasks = ["Reasoning (No conclusion)", "Reasoning Chains", "Final Answer"]
+
+search_on = st.checkbox("Search on the web", value=False)
 
 if prompt := st.chat_input(q):
 
-    search_result = search(prompt, st.session_state.messages)
+    if search_on:
+        search_result = search(prompt, st.session_state.messages)
 
-    with st.status("Search Results:"):
-        st.write(search_result)
+        with st.status("Search Results:"):
+            st.write(search_result)
 
-    if search_result:
-        search_result = str(search_result)[:MAX_SEAERCH_RESULTS]
-        st.session_state.messages.append(
-            HumanMessage(
-                content=f"FYI search result conext: {search_result} for the query, {prompt}"
+        if search_result:
+            search_result = str(search_result)[:MAX_SEARCH_TOKENS]
+            st.session_state.messages.append(
+                HumanMessage(
+                    content=f"FYI search result conext: {search_result} for the query, {prompt}"
+                )
             )
-        )
-        st.session_state.messages.append(
-            AIMessage(
-                content="Thanks for the information! I will keep in mind. Give me the instruction."
+            st.session_state.messages.append(
+                AIMessage(
+                    content="Thanks for the information! I will keep in mind. Give me the instruction."
+                )
             )
-        )
 
     for task in tasks:
-        instruction = f"""Please provide {task} for the given query,and context and chat history. 
-        Please only provide the {task}.
+        instruction = f"""Please provide "{task}" for the given query,and context and chat history. 
+        Please only provide the "{task}" and do not include other information.
         ---
         User Query: 
         {prompt}"""
