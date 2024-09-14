@@ -74,7 +74,7 @@ reasoning_prompt = ChatPromptTemplate.from_messages(
             """You are Solar, a smart search reasoning and answer engine by Upstage, loved by many people. 
             
             See reasoning examples, context provided for instruction. 
-            Follow the instrution in user query and provide best answer for the query.
+            Follow the instrution in user query and provide best answer for the query using reasoning technique and step by step explanation.
             ---
             {reasoning_examples}
             """,
