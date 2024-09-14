@@ -32,6 +32,9 @@ reasoning: $(VENV)/bin/activate
 discussion: $(VENV)/bin/activate
 	$(STREAMLIT) run discussion.py --server.port 9093
 
+llama: $(VENV)/bin/activate
+	$(STREAMLIT) run llama.py
+
 hw: $(VENV)/bin/activate
 	$(STREAMLIT) run hw.py
 

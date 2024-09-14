@@ -1,6 +1,7 @@
 gradio==4.29
 langchain_upstage
 duckduckgo-search
+langchain-groq
 openai
 requests 
 streamlit
