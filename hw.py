@@ -21,7 +21,7 @@ from langchain import hub
 
 st.title("Solar HW Grader")
 st.write(
-    "This is a conversational AI that can chat with you about your documents! Get your KEY at https://console.upstage.ai/"
+    "This is Solar SNU HW grader demo. Get your KEY at https://console.upstage.ai/"
 )
 
 llm = ChatUpstage(model="solar-pro")
