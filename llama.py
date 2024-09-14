@@ -17,7 +17,7 @@ from langchain_core.prompts import (
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.messages import AIMessage, HumanMessage
 
-MAX_TOKENS = 4000
+MAX_TOKENS = 40000
 MAX_SEAERCH_RESULTS = 5
 
 MODEL_NAME = "llama-3.1-70b-versatile"
@@ -378,7 +378,8 @@ def perform_task(chat_history):
     total_length = 0
     for message in reversed(chat_history):
         message_length = len(message.content)
-        if total_length + message_length > 3000:
+        if total_length + message_length > MAX_TOKENS:
+            st.warning("Chat history is too long. Truncating to fit model input.")
             break
         limited_history.insert(0, message)
         total_length += message_length
