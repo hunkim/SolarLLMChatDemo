@@ -17,6 +17,8 @@ import re
 import tempfile
 import unicodedata
 import zipfile
+import hashlib
+
 
 if "processed_files" not in st.session_state:
     st.session_state.processed_files = set()
@@ -63,6 +65,11 @@ def get_response(retrieved_docs):
             "student_report": retrieved_docs,
         }
     )
+
+
+def hash_filename(filename):
+    # Generate a hash of the filename
+    return hashlib.md5(filename.encode("utf-8")).hexdigest() + ".pdf"
 
 
 def create_excel_grade(students_data):
@@ -135,15 +142,18 @@ if (
                         ".pdf"
                     ) and not file_info.filename.startswith("__MACOSX/"):
                         try:
-                            filename = file_info.filename.encode("cp437").decode(
-                                "utf-8"
-                            )
-                            extracted_path = os.path.join(temp_dir, filename)
+                            original_filename = file_info.filename.encode(
+                                "cp437"
+                            ).decode("utf-8")
+                            hashed_name = hash_filename(original_filename)
+                            extracted_path = os.path.join(temp_dir, hashed_name)
                             with z.open(file_info) as source, open(
                                 extracted_path, "wb"
                             ) as target:
                                 target.write(source.read())
                             student_name, score = process_pdf_file(extracted_path)
+                            # Use the original filename for display and grading
+                            student_name = os.path.splitext(original_filename)[0]
                             st.session_state.students_data.append((student_name, score))
                         except Exception as e:
                             st.error(
