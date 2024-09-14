@@ -18,7 +18,7 @@ from langchain_core.prompts import (
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.messages import AIMessage, HumanMessage
 
-MAX_TOKENS = 4000
+MAX_TOKENS = 5000
 MAX_SEARCH_TOKENS = 700
 MAX_SEAERCH_RESULTS = 5
 
