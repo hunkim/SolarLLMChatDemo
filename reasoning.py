@@ -234,7 +234,6 @@ def search(query, chat_history, context=None):
         return []
 
     # combine all queries with "OR" operator
-    or_merged_search_query = " OR ".join(q_list)
     results = ""
     for q in q_list:   
         with st.spinner(f"Searching for '{q }'..."):
@@ -262,7 +261,7 @@ if prompt := st.chat_input(q):
     with st.status("Search Results:"):
         st.write(search_result)
 
-    if search_result:
+    if len(search_result) > 100:
         search_result = str(search_result)[:MAX_SEAERCH_RESULTS]
         st.session_state.messages.append(
             HumanMessage(
