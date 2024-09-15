@@ -118,11 +118,15 @@ for message in st.session_state.messages:
 img_file_buffer = st.file_uploader("Upload a image image", type=["png", "jpg", "jpeg"])
 img_bytes = None
 if img_file_buffer:
+    # reset history
+    st.session_state.messages = []
     st.image(img_file_buffer)
     img_bytes = img_file_buffer.read()
 
 paste_result = pbutton("📋 Paste an image")
 if paste_result.image_data is not None:
+    # reset history
+    st.session_state.messages = []
     st.write("Pasted image:")
     st.image(paste_result.image_data)
     img_bytes = io.BytesIO()
