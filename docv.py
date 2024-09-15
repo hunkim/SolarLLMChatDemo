@@ -26,7 +26,7 @@ chat_with_history_prompt = ChatPromptTemplate.from_template(
     """
 You are a helpful assistant.
 Answer the following questions considering the history of the conversation. 
-Use the Chain of Thought (CoT) technique to explain your thought process as you answer. 
+Think step by step and to explain your thought process as you answer. 
 ----
 Chat history: {chat_history}
 ----
