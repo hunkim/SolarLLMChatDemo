@@ -12,7 +12,7 @@ chatopenai: $(VENV)/bin/activate
 	$(STREAMLIT) run chatopenai.py
 
 chat: $(VENV)/bin/activate
-	$(STREAMLIT) run chat.py --server.port 8502
+	$(STREAMLIT) run chat.py 
 
 chatpdf: $(VENV)/bin/activate
 	$(STREAMLIT) run chatpdf.py
@@ -23,8 +23,11 @@ chatpdfemb: $(VENV)/bin/activate
 chatgradio: $(VENV)/bin/activate
 	$(GRADIO) chatgradio.py
 
+docv: $(VENV)/bin/activate
+	$(STREAMLIT) run docv.py
+
 search: $(VENV)/bin/activate
-	$(STREAMLIT) run chatsearch.py --server.port 8503
+	$(STREAMLIT) run chatsearch.py 
 
 reasoning: $(VENV)/bin/activate
 	$(STREAMLIT) run reasoning.py 

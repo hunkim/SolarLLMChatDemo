@@ -1,22 +1,17 @@
-# from https://docs.streamlit.io/develop/tutorials/llms/build-conversational-apps
-
 import streamlit as st
-
+import time
 from pydantic import BaseModel, Field
 
-from langchain_upstage import ChatUpstage as Chat
-
-from langchain_community.tools import DuckDuckGoSearchResults
-
-
-from langchain_core.output_parsers import StrOutputParser
+from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langchain_core.prompts import (
     ChatPromptTemplate,
     MessagesPlaceholder,
     PromptTemplate,
 )
-from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.messages import AIMessage, HumanMessage
+
+from langchain_upstage import ChatUpstage as Chat
+from langchain_community.tools import DuckDuckGoSearchResults
 
 from solar_util import num_of_tokens
 
@@ -24,12 +19,8 @@ MAX_TOKENS = 2500
 MAX_SEARCH_TOKENS = 700
 MAX_SEAERCH_RESULTS = 5
 
-MODEL_NAME = "solar-pro"
-
-llm = Chat(model=MODEL_NAME)
-
+llm = Chat(model="solar-pro")
 ddg_search = DuckDuckGoSearchResults()
-
 
 st.set_page_config(page_title="Solar Reasoning", page_icon="🤔")
 st.title("Solar Reasoning")
@@ -75,82 +66,45 @@ reasoning_prompt = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            """You are Solar, a smart search reasoning and answer engine by Upstage, loved by many people. 
+            """You are Solar, a smart reasoning and answer engine by Upstage, loved by many people.. 
             
-            See reasoning examples, context provided for instruction. 
-            Follow the instrution in user query and provide best answer for the query using reasoning technique and step by step explanation.
-            ---
-            {reasoning_examples}
-            """,
-        ),
-        MessagesPlaceholder("chat_history"),
-    ]
-)
+For the given query, please provide the best answer using a step-by-step explanation. 
+Your response should demonstrate a Chain of Thought (CoT) technique, 
+where you think aloud and describe the steps you take to reach a conclusion. 
 
-short_answer_prompt = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            """You are Solar, a smart search engine by Upstage, loved by many people. 
-            
-            Write one word answer if you can say "yes", "no", or direct answer. 
-            Otherwise just one or two sentense short answer for the query from the given conetxt.
-            Try to understand the user's intention and provide a quick answer.
-            If the answer is not in context, please say you don't know and ask to clarify the question.
+Please best use of the provided reasoning examples and context.
+---
+{reasoning_examples}
             """,
         ),
         MessagesPlaceholder("chat_history"),
         (
             "human",
-            """Query: {user_query} 
-         ----
-         Context: {context}""",
-        ),
-    ]
-)
-
-search_prompt = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            """You are Solar, a smart search engine by Upstage, loved by many people. 
-            
-            See the origial query, context, and quick answer, and then provide detailed explanation.
-
-            Try to understand the user's intention and provide the relevant information in detail.
-            If the answer is not in context, please say you don't know and ask to clarify the question.
-            Do not repeat the short answer.
-
-            When you write the explnation, please cite the source like [1], [2] if possible.
-            Thyen, put the cited references including citation number, title, and URL at the end of the answer.
-            Each reference should be in a new line in the markdown format like this:
-
-            [1] Title - URL
-            [2] Title - URL
-            ...
-            """,
-        ),
-        MessagesPlaceholder("chat_history"),
-        (
-            "human",
-            """Query: {user_query} 
-         ----
-         Short answer: {short_answer}
-         ----
-         Context: {context}""",
+            """For the given query, please provide only the "{task}" 
+and ensure your response is consistent with the user's request, 
+previous chat history, and provided reasoning if any. 
+Remember to use the self-consistency technique to maintain a consistent character of a helpful assistant.
+Think step by step and provide the best answer for the query.
+---
+User Query: 
+{prompt}
+---
+{Reasoning}
+---
+{ReasoningChains}""",
         ),
     ]
 )
 
 
-query_context_expansion_prompt = """
-For a given query and context(if provided), expand it with related questions and search the web for answers.
-Try to understand the purpose of the query and expand  with upto three related questions 
-to privde answer to the original query. 
-Note that it's for keyword-based search engines, so it should be short and concise.
+query_context_expansion_prompt = """Given a query and context(if provided), 
+generate up to three related questions to help answer the original query.
+Ensure the questions are short, concise, and keyword-based for search engines. 
 
-Please write in Python LIST format like this:
-["number of people in France?", How many people in France?", "France population"]
+Write your response in Python LIST format. 
+
+For example: 
+["original query", "related question 1", "related question 2", "related question 3"]
 
 ---
 Context: {context}
@@ -191,8 +145,11 @@ def query_context_expansion(query, chat_history, context=None):
     return []
 
 
-def perform_task(chat_history):
-     # Limit chat history to 3000 characters
+GlobalTasks = ["Reasoning (No conclusion)", "Reasoning Chains", "Final Answer"]
+
+
+def perform_task(user_query, task, task_results, chat_history):
+    # Limit chat history to 3000 characters
     limited_history = []
     total_length = 0
     for message in reversed(chat_history):
@@ -203,26 +160,16 @@ def perform_task(chat_history):
         limited_history.insert(0, message)
         total_length += message_length
 
-
     chain = reasoning_prompt | llm | StrOutputParser()
 
     return chain.stream(
         {
             "chat_history": limited_history,
             "reasoning_examples": reasoning_examples,
-        }
-    )
-
-
-def get_search_desc(user_query, short_answer, context, chat_history):
-    chain = search_prompt | llm | StrOutputParser()
-
-    return chain.stream(
-        {
-            "context": context,
-            "chat_history": chat_history,
-            "user_query": user_query,
-            "short_answer": short_answer,
+            "prompt": user_query,
+            "task": task,
+            "Reasoning": task_results.get(GlobalTasks[0], ""),
+            "ReasoningChains": task_results.get(GlobalTasks[1], ""),
         }
     )
 
@@ -238,10 +185,10 @@ def search(query, chat_history, context=None):
 
     # combine all queries with "OR" operator
     results = ""
-    for q in q_list:   
+    for q in q_list:
         with st.spinner(f"Searching for '{q }'..."):
             results += ddg_search.invoke(q)
-    
+
     return results
 
 
@@ -255,11 +202,11 @@ for message in st.session_state.messages:
 
 q = "3.9 vs 3.11. Which one is bigger?"
 
-tasks = ["Reasoning (No conclusion)", "Reasoning Chains", "Final Answer"]
-
 search_on = st.checkbox("Search on the web", value=False)
 
 if prompt := st.chat_input(q):
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
     if search_on:
         search_result = search(prompt, st.session_state.messages)
@@ -279,16 +226,24 @@ if prompt := st.chat_input(q):
                     content="Thanks for the information! I will keep in mind. Give me the instruction."
                 )
             )
+    task_results = {}
+    current_time = time.time()
+    for task in GlobalTasks:
+        if task == GlobalTasks[-1]:
+            st.info(f"Thinking: {time.time() - current_time:.2f}s")
 
-    for task in tasks:
-        instruction = f"""Please provide "{task}" for the given query,and context and chat history. 
-        Please only provide the "{task}" and do not include other information.
-        ---
-        User Query: 
-        {prompt}"""
-        st.session_state.messages.append(HumanMessage(content=instruction))
-        with st.chat_message("user"):
-            st.write(instruction)
-        with st.chat_message("assistant"):
-            response = st.write_stream(perform_task(st.session_state.messages))
-        st.session_state.messages.append(AIMessage(content=response))
+            with st.chat_message("assistant"):
+                response = st.write_stream(
+                    perform_task(prompt, task, task_results, st.session_state.messages)
+                )
+                task_results[task] = response
+            break
+
+        with st.status(f"Performing task: {task}"):
+            response = st.write_stream(
+                perform_task(prompt, task, task_results, st.session_state.messages)
+            )
+            task_results[task] = response
+    # Store the last task result for future reference
+    st.session_state.messages.append(HumanMessage(content=prompt))
+    st.session_state.messages.append(AIMessage(content=task_results[GlobalTasks[-1]]))
