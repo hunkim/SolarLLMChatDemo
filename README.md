@@ -4,6 +4,8 @@
 * Search: https://solar-search.streamlit.app/
 * ChatPDF: https://solar-pdf.streamlit.app/
 * Self-Discussion: https://solar-discussion.streamlit.app/
+* DocVision: https://solar-docv.streamlit.app/
+  
 * Reasoning: https://toy-o1.streamlit.app/, https://toy-o2.streamlit.app/
 
 ## SolarLLM Cookbook
