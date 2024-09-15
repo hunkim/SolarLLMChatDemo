@@ -5,6 +5,8 @@ langchain-groq
 openai
 requests 
 streamlit
+streamlit-extras
+streamlit-paste-button
 langchain
 faiss-cpu 
 langchainhub
