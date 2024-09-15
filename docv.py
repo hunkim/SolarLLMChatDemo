@@ -6,17 +6,13 @@ from langchain_upstage import UpstageLayoutAnalysisLoader
 
 
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import AIMessage, HumanMessage
 from streamlit_paste_button import paste_image_button as pbutton
 
-import streamlit as st
-import numpy as np
-from PIL import Image
 import base64
 import io
 import tempfile
-import concurrent.futures
 
 
 DOCV_MODEL_NAME = st.secrets["DOCV_MODEL_NAME"]
@@ -28,7 +24,9 @@ solar_pro = Chat(model=MODEL_NAME)
 
 chat_with_history_prompt = ChatPromptTemplate.from_template(
     """
-You are a helpful assistant. Answer the following questions considering the history of the conversation:
+You are a helpful assistant.
+Answer the following questions considering the history of the conversation. 
+Use the Chain of Thought (CoT) technique to explain your thought process as you answer. 
 ----
 Chat history: {chat_history}
 ----
