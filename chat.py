@@ -57,7 +57,7 @@ def get_response(user_query, chat_history):
         
         yield chunk
 
-    return response
+    yield response
 
 
 if "messages" not in st.session_state:
