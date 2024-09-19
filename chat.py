@@ -12,7 +12,7 @@ from solar_util import prompt_engineering
 MODEL_NAME = "solar-pro"
 if "MODEL_NAME" in st.secrets:
     MODEL_NAME = st.secrets["MODEL_NAME"]
-llm = Chat(model=MODEL_NAME)
+llm = Chat(model=MODEL_NAME, max_tokens=1024, stop={"<END>"})
 
 st.set_page_config(page_title="Chat")
 st.title("SolarLLM")
@@ -20,9 +20,12 @@ st.title("SolarLLM")
 
 chat_with_history_prompt = ChatPromptTemplate.from_messages(
     [
-        ("system", """You are Solar, a smart chatbot by Upstage, loved by many people. 
+        ("human", """You are Solar, a smart chatbot by Upstage, loved by many people. 
          Be smart, cheerful, and fun. Give engaging answers and avoid inappropriate language.
-         Solar is now being connected with a human."""),
+         reply in the same language of the user query.
+         Solar is now being connected with a human.
+         
+         Please put <END> in the end of your answer."""),
         MessagesPlaceholder("chat_history"),
         ("human", "{user_query}"),
     ]
@@ -33,12 +36,26 @@ chat_with_history_prompt = ChatPromptTemplate.from_messages(
 def get_response(user_query, chat_history):
     chain = chat_with_history_prompt | llm | StrOutputParser()
 
-    return chain.stream(
+    response = ""
+    end_token = ""
+    for chunk in chain.stream(
         {
             "chat_history": chat_history,
             "user_query": user_query,
         }
-    )
+    ):
+        print(chunk)
+        response += chunk
+        end_token += chunk
+        
+        if "<END>" in end_token:
+            response = response.split("<END>")[0]
+            break
+        
+        # Keep only the last 5 characters to check for <END>
+        end_token = end_token[-5:]
+        
+        yield chunk
 
 
 if "messages" not in st.session_state:

@@ -1,6 +1,5 @@
+import streamlit as st
 from langchain_upstage import ChatUpstage as Chat
-
-
 
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import PromptTemplate
@@ -9,23 +8,27 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 from tokenizers import Tokenizer
 
 
-MODEL_NAME = "solar-pro"
-llm = Chat(model=MODEL_NAME)
-
 solar_tokenizer = Tokenizer.from_pretrained("upstage/solar-pro-preview-tokenizer")
+
 
 # Define your desired data structure.
 # {"original_prompt": "original prompt", "enhanced_prompt": "enhanced prompt", "techniques": "technique"}
 # Define your desired data structure.
 class PromptEngineering(BaseModel):
     original_prompt: str = Field(description="original prompt")
-    enhanced_prompt: str = Field(description="enhanced prompt after applying prompt engineering techniques")
-    techniques: str = Field(description="prompt engineering technique used to enhance the prompt")
+    enhanced_prompt: str = Field(
+        description="enhanced prompt after applying prompt engineering techniques"
+    )
+    techniques: str = Field(
+        description="prompt engineering technique used to enhance the prompt"
+    )
+
 
 parser = JsonOutputParser(pydantic_object=PromptEngineering)
 
 prompt = """Use these prompt engineering technique and enhance user prompt to generate more effective prompt.
-Consider the chat history for context if available.
+Consider the chat history for context if available. 
+Please write the promt in Korean.
 ----
 Chat History:
 {chat_history}
@@ -58,11 +61,17 @@ prompt = PromptTemplate(
     partial_variables={"format_instructions": parser.get_format_instructions()},
 )
 
-chain = prompt | llm | parser
+
 
 def prompt_engineering(original_prompt, chat_history=None):
+    MODEL_NAME = "solar-pro"
+    solar_pro = Chat(model=MODEL_NAME)
+    chain = prompt | solar_pro | parser
+
     # Invoke the chain with the joke_query.
-    parsed_output = chain.invoke({"original_prompt": original_prompt, "chat_history": chat_history})
+    parsed_output = chain.invoke(
+        {"original_prompt": original_prompt, "chat_history": chat_history}
+    )
 
     return parsed_output
 
@@ -75,9 +84,10 @@ def result_reference_summary(results):
 
     return result_summary
 
+
 def num_of_tokens(text):
     return len(solar_tokenizer.encode(text).ids)
 
 
 if __name__ == "__main__":
-   print(num_of_tokens("Hello, world!"))
+    print(num_of_tokens("Hello, world!"))
