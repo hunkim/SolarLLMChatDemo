@@ -22,7 +22,8 @@ MAX_TOKENS = 4000
 MAX_SEAERCH_RESULTS = 5
 
 MODEL_NAME = "solar-pro"
-
+if "MODEL_NAME" in st.secrets:
+    MODEL_NAME = st.secrets["MODEL_NAME"]
 llm = Chat(model=MODEL_NAME)
 
 ddg_search = DuckDuckGoSearchResults()

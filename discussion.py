@@ -18,6 +18,8 @@ st.set_page_config(page_title="Discuss", page_icon="🗣️")
 st.title("Self-debating Solar Pro Preview")
 
 MODEL_NAME = "solar-pro"
+if "MODEL_NAME" in st.secrets:
+    MODEL_NAME = st.secrets["MODEL_NAME"]
 llm = Chat(model=MODEL_NAME)
 
 ddg_search = DuckDuckGoSearchResults()

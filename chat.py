@@ -10,7 +10,8 @@ from langchain_core.messages import AIMessage, HumanMessage
 from solar_util import prompt_engineering
 
 MODEL_NAME = "solar-pro"
-
+if "MODEL_NAME" in st.secrets:
+    MODEL_NAME = st.secrets["MODEL_NAME"]
 llm = Chat(model=MODEL_NAME)
 
 st.set_page_config(page_title="Chat")

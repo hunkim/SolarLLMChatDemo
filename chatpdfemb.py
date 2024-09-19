@@ -23,7 +23,10 @@ st.write(
     "This is a conversational AI that can chat with you about your documents! Get your KEY at https://console.upstage.ai/"
 )
 
-llm = ChatUpstage(model="solar-pro")
+MODEL_NAME = "solar-pro"
+if "MODEL_NAME" in st.secrets:
+    MODEL_NAME = st.secrets["MODEL_NAME"]
+llm = ChatUpstage(model=MODEL_NAME)
 # https://smith.langchain.com/hub/hunkim/rag-qa-with-history
 chat_with_history_prompt = hub.pull("hunkim/rag-qa-with-history")
 

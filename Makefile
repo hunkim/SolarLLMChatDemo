@@ -44,6 +44,9 @@ hw: $(VENV)/bin/activate
 util: $(VENV)/bin/activate
 	$(PYTHON) solar_util.py
 
+biz_help: $(VENV)/bin/activate
+	$(STREAMLIT) run biz_help.py
+
 clean:
 	rm -rf __pycache__
 	rm -rf $(VENV)
