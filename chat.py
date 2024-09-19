@@ -53,9 +53,11 @@ def get_response(user_query, chat_history):
             break
         
         # Keep only the last 5 characters to check for <END>
-        # end_token = end_token[-5:]
+        end_token = end_token[-5:]
         
         yield chunk
+
+    return response
 
 
 if "messages" not in st.session_state:
