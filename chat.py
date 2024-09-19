@@ -7,7 +7,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import AIMessage, HumanMessage
 
-from solar_util import prompt_engineering
+#from solar_util import prompt_engineering
 
 MODEL_NAME = "solar-pro"
 if "MODEL_NAME" in st.secrets:
@@ -66,7 +66,8 @@ for message in st.session_state.messages:
     with st.chat_message(role):
         st.markdown(message.content)
 
-enhance_prompt = st.toggle("Enhance prompt", True)
+#enhance_prompt = st.toggle("Enhance prompt", True)
+enhance_prompt = False
 if prompt := st.chat_input("What is up?"):
     if enhance_prompt:
         with st.status("Prompt engineering..."):
