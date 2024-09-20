@@ -119,6 +119,7 @@ uploaded_files = st.file_uploader(
 if type(uploaded_files) is not list:
     uploaded_files = [uploaded_files]
 
+MAX_RETRIES = 4
 for uploaded_file in uploaded_files:
     if uploaded_file and uploaded_file.name not in st.session_state.processed_files:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -139,7 +140,7 @@ for uploaded_file in uploaded_files:
                         break
                     except Exception as e:
                         retries += 1
-                        if retries > 3:
+                        if retries > MAX_RETRIES:
                             st.error(f"Failed to process {uploaded_file.name}: {e}")
                             break
 
