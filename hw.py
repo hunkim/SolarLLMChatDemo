@@ -16,8 +16,6 @@ import os
 import re
 import tempfile
 import unicodedata
-import zipfile
-import hashlib
 
 
 if "processed_files" not in st.session_state:
@@ -67,11 +65,6 @@ def get_response(retrieved_docs):
     )
 
 
-def hash_filename(filename):
-    # Generate a hash of the filename
-    return hashlib.md5(filename.encode("utf-8")).hexdigest() + ".pdf"
-
-
 def create_excel_grade(students_data):
     wb = Workbook()
     ws = wb.active
@@ -119,52 +112,26 @@ def process_pdf_file(file_path):
         return student_name, score, full_response
 
 
-uploaded_file = st.file_uploader(
-    "Choose your `.pdf` or `.zip` file", type=["pdf", "zip"]
+uploaded_files = st.file_uploader(
+    "Choose your `.pdf` file", type=["pdf"], accept_multiple_files=True
 )
 
-if (
-    uploaded_file is not None
-    and uploaded_file.name not in st.session_state.processed_files
-):
-    with tempfile.TemporaryDirectory() as temp_dir:
-        file_path = os.path.join(temp_dir, uploaded_file.name)
+if type(uploaded_files) is not list:
+    uploaded_files = [uploaded_files]
 
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.getvalue())
+for uploaded_file in uploaded_files:
+    if uploaded_file and uploaded_file.name not in st.session_state.processed_files:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            file_path = os.path.join(temp_dir, uploaded_file.name)
 
-        if uploaded_file.name.endswith(".pdf"):
-            student_name, score, feedback = process_pdf_file(file_path)
-            st.session_state.students_data.append((student_name, score, feedback))
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getvalue())
 
-        elif uploaded_file.name.endswith(".zip"):
-            with zipfile.ZipFile(file_path, "r") as z:
-                for file_info in z.infolist():
-                    if file_info.filename.endswith(
-                        ".pdf"
-                    ) and not file_info.filename.startswith("__MACOSX/"):
-                        try:
-                            original_filename = file_info.filename.encode(
-                                "cp437"
-                            ).decode("utf-8")
-                            hashed_name = hash_filename(original_filename)
-                            extracted_path = os.path.join(temp_dir, hashed_name)
-                            with z.open(file_info) as source, open(
-                                extracted_path, "wb"
-                            ) as target:
-                                target.write(source.read())
-                            student_name, score, feedback = process_pdf_file(
-                                extracted_path
-                            )
-                            # Use the original filename for display and grading
-                            student_name = os.path.splitext(original_filename)[0]
-                            st.session_state.students_data.append(
-                                (student_name, score, feedback)
-                            )
-                        except Exception as e:
-                            st.error(f"Error processing file {file_info.filename}: {e}")
+            if uploaded_file.name.endswith(".pdf"):
+                student_name, score, feedback = process_pdf_file(file_path)
+                st.session_state.students_data.append((student_name, score, feedback))
 
-        st.session_state.processed_files.add(uploaded_file.name)
+            st.session_state.processed_files.add(uploaded_file.name)
 
 if st.session_state.students_data:
     wb = create_excel_grade(st.session_state.students_data)
