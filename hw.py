@@ -128,10 +128,21 @@ for uploaded_file in uploaded_files:
                 f.write(uploaded_file.getvalue())
 
             if uploaded_file.name.endswith(".pdf"):
-                student_name, score, feedback = process_pdf_file(file_path)
-                st.session_state.students_data.append((student_name, score, feedback))
+                retries = 0
+                while True:
+                    try:
+                        student_name, score, feedback = process_pdf_file(file_path)
+                        st.session_state.students_data.append(
+                            (student_name, score, feedback)
+                        )
+                        st.session_state.processed_files.add(uploaded_file.name)
+                        break
+                    except Exception as e:
+                        retries += 1
+                        if retries > 3:
+                            st.error(f"Failed to process {uploaded_file.name}: {e}")
+                            break
 
-            st.session_state.processed_files.add(uploaded_file.name)
 
 if st.session_state.students_data:
     wb = create_excel_grade(st.session_state.students_data)
