@@ -162,9 +162,7 @@ if (
                                 (student_name, score, feedback)
                             )
                         except Exception as e:
-                            st.error(
-                                f"Error processing file {file_info.filename}: {str(e)}"
-                            )
+                            st.error(f"Error processing file {file_info.filename}: {e}")
 
         st.session_state.processed_files.add(uploaded_file.name)
 
