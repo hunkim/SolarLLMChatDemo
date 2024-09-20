@@ -189,7 +189,7 @@ if st.session_state.processed_files:
 
 if st.session_state.students_data:
     st.write("Current Grades:")
-    for name, score in st.session_state.students_data:
+    for name, score, _ in st.session_state.students_data:
         st.text(f"{name}: {score}")
 
 # Add a button to clear the session state
