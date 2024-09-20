@@ -79,12 +79,14 @@ def create_excel_grade(students_data):
 
     ws["A1"] = "File Name"
     ws["B1"] = "Score"
+    ws["C1"] = "Feedback"
 
-    for row, (name, score) in enumerate(students_data, start=2):
+    for row, (name, score, feedback) in enumerate(students_data, start=2):
         # Normalize the Korean name to composed form
         normalized_name = unicodedata.normalize("NFC", name)
         ws[f"A{row}"] = normalized_name
         ws[f"B{row}"] = score
+        ws[f"C{row}"] = feedback
 
     return wb
 
@@ -114,7 +116,7 @@ def process_pdf_file(file_path):
         score_match = re.search(r"Score: (\d+)", full_response)
         score = score_match.group(1) if score_match else "N/A"
 
-        return student_name, score
+        return student_name, score, full_response
 
 
 uploaded_file = st.file_uploader(
@@ -132,8 +134,8 @@ if (
             f.write(uploaded_file.getvalue())
 
         if uploaded_file.name.endswith(".pdf"):
-            student_name, score = process_pdf_file(file_path)
-            st.session_state.students_data.append((student_name, score))
+            student_name, score, feedback = process_pdf_file(file_path)
+            st.session_state.students_data.append((student_name, score, feedback))
 
         elif uploaded_file.name.endswith(".zip"):
             with zipfile.ZipFile(file_path, "r") as z:
@@ -151,10 +153,14 @@ if (
                                 extracted_path, "wb"
                             ) as target:
                                 target.write(source.read())
-                            student_name, score = process_pdf_file(extracted_path)
+                            student_name, score, feedback = process_pdf_file(
+                                extracted_path
+                            )
                             # Use the original filename for display and grading
                             student_name = os.path.splitext(original_filename)[0]
-                            st.session_state.students_data.append((student_name, score))
+                            st.session_state.students_data.append(
+                                (student_name, score, feedback)
+                            )
                         except Exception as e:
                             st.error(
                                 f"Error processing file {file_info.filename}: {str(e)}"
