@@ -1,14 +1,30 @@
 import streamlit as st
-from langchain_upstage import ChatUpstage as Chat
+from langchain_upstage import ChatUpstage 
 
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import PromptTemplate
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 
 from tokenizers import Tokenizer
 
 
 solar_tokenizer = Tokenizer.from_pretrained("upstage/solar-pro-preview-tokenizer")
+
+def initialize_solar_llm():
+    MODEL_NAME = st.secrets.get("SOLAR_MODEL_NAME", "solar-pro")
+
+    # Initialize llm with default values
+    llm_kwargs = {"model": MODEL_NAME}
+    
+    # Add base_url if it's set in secrets
+    if "SOLAR_BASE_URL" in st.secrets:
+        llm_kwargs["base_url"] = st.secrets["SOLAR_BASE_URL"]
+
+    # Add api_key if it's set in secrets
+    if "SOLAR_API_KEY" in st.secrets:
+        llm_kwargs["api_key"] = st.secrets["SOLAR_API_KEY"]
+
+    return ChatUpstage(**llm_kwargs)
 
 
 # Define your desired data structure.

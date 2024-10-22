@@ -38,11 +38,17 @@ discussion: $(VENV)/bin/activate
 llama: $(VENV)/bin/activate
 	$(STREAMLIT) run llama.py
 
+voice: $(VENV)/bin/activate
+	$(STREAMLIT) run voice.py
+
 hw: $(VENV)/bin/activate
 	$(STREAMLIT) run hw.py
 
 util: $(VENV)/bin/activate
 	$(PYTHON) solar_util.py
+
+podcast: $(VENV)/bin/activate
+	$(STREAMLIT) run podcast.py
 
 biz_help: $(VENV)/bin/activate
 	$(STREAMLIT) run biz_help.py

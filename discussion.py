@@ -13,14 +13,12 @@ from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.tools import DuckDuckGoSearchResults
 
+from solar_util import initialize_solar_llm
 
 st.set_page_config(page_title="Discuss", page_icon="🗣️")
 st.title("Self-debating Solar Pro Preview")
 
-MODEL_NAME = "solar-pro"
-if "MODEL_NAME" in st.secrets:
-    MODEL_NAME = st.secrets["MODEL_NAME"]
-llm = Chat(model=MODEL_NAME)
+llm = initialize_solar_llm()
 
 ddg_search = DuckDuckGoSearchResults()
 

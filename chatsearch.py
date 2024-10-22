@@ -5,6 +5,7 @@ import streamlit as st
 from pydantic import BaseModel, Field
 
 from langchain_upstage import ChatUpstage as Chat
+from solar_util import initialize_solar_llm
 
 from langchain_community.tools import DuckDuckGoSearchResults
 
@@ -21,14 +22,9 @@ from langchain_core.messages import AIMessage, HumanMessage
 MAX_TOKENS = 4000
 MAX_SEAERCH_RESULTS = 5
 
-MODEL_NAME = "solar-pro"
-if "MODEL_NAME" in st.secrets:
-    MODEL_NAME = st.secrets["MODEL_NAME"]
-llm = Chat(model=MODEL_NAME)
-
 ddg_search = DuckDuckGoSearchResults()
 
-
+llm = initialize_solar_llm()
 st.set_page_config(page_title="Search and Chat", page_icon="🔍")
 st.title("SolarLLM Search")
 

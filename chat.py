@@ -7,13 +7,11 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import AIMessage, HumanMessage
 
+from solar_util import initialize_solar_llm
+
 #from solar_util import prompt_engineering
 
-MODEL_NAME = "solar-pro"
-if "MODEL_NAME" in st.secrets:
-    MODEL_NAME = st.secrets["MODEL_NAME"]
-llm = Chat(model=MODEL_NAME, max_tokens=1024, stop={"<END>"})
-
+llm = initialize_solar_llm()
 st.set_page_config(page_title="Chat")
 st.title("SolarLLM")
 
