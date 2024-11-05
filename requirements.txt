@@ -15,4 +15,3 @@ watchdog
 openpyxl==3.1.5
 tokenizers
 pydantic
-streamlit-mic-recorder

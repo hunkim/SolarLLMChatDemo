@@ -18,15 +18,14 @@ import tempfile, os
 
 from langchain import hub
 
+from solar_util import initialize_solar_llm
+
 st.title("LangChain Upstage Solar ChatDoc")
 st.write(
     "This is a conversational AI that can chat with you about your documents! Get your KEY at https://console.upstage.ai/"
 )
 
-MODEL_NAME = "solar-pro"
-if "MODEL_NAME" in st.secrets:
-    MODEL_NAME = st.secrets["MODEL_NAME"]
-llm = ChatUpstage(model=MODEL_NAME)
+llm = initialize_solar_llm()
 # https://smith.langchain.com/hub/hunkim/rag-qa-with-history
 chat_with_history_prompt = hub.pull("hunkim/rag-qa-with-history")
 

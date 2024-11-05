@@ -79,10 +79,10 @@ prompt = PromptTemplate(
 
 
 
-def prompt_engineering(original_prompt, chat_history=None):
-    MODEL_NAME = "solar-pro"
-    solar_pro = Chat(model=MODEL_NAME)
-    chain = prompt | solar_pro | parser
+def prompt_engineering(original_prompt, chat_history=None, llm=None):
+    if llm is None:
+        llm = initialize_solar_llm()
+    chain = prompt | llm | parser
 
     # Invoke the chain with the joke_query.
     parsed_output = chain.invoke(

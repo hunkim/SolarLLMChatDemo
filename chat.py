@@ -9,7 +9,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 
 from solar_util import initialize_solar_llm
 
-#from solar_util import prompt_engineering
+from solar_util import prompt_engineering
 
 llm = initialize_solar_llm()
 st.set_page_config(page_title="Chat")
@@ -66,8 +66,7 @@ for message in st.session_state.messages:
     with st.chat_message(role):
         st.markdown(message.content)
 
-#enhance_prompt = st.toggle("Enhance prompt", True)
-enhance_prompt = False
+enhance_prompt = st.toggle("Enhance prompt", True)
 if prompt := st.chat_input("What is up?"):
     if enhance_prompt:
         with st.status("Prompt engineering..."):
