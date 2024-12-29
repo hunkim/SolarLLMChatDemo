@@ -17,6 +17,9 @@ chat: $(VENV)/bin/activate
 chatpdf: $(VENV)/bin/activate
 	$(STREAMLIT) run chatpdf.py
 
+longimg: $(VENV)/bin/activate
+	$(STREAMLIT) run longimg.py
+
 chatpdfemb: $(VENV)/bin/activate
 	$(STREAMLIT) run chatpdfemb.py
 
