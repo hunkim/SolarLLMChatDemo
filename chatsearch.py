@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from langchain_upstage import ChatUpstage as Chat
 from solar_util import initialize_solar_llm
 
-from langchain_community.tools import DuckDuckGoSearchResults
+from langchain_community.document_loaders import BraveSearchLoader
 
 
 from langchain_core.output_parsers import StrOutputParser
@@ -22,7 +22,6 @@ from langchain_core.messages import AIMessage, HumanMessage
 MAX_TOKENS = 4000
 MAX_SEAERCH_RESULTS = 5
 
-ddg_search = DuckDuckGoSearchResults()
 
 llm = initialize_solar_llm()
 st.set_page_config(page_title="Search and Chat", page_icon="🔍")
@@ -38,6 +37,9 @@ short_answer_prompt = ChatPromptTemplate.from_messages(
             Otherwise just one or two sentense short answer for the query from the given conetxt.
             Try to understand the user's intention and provide a quick answer.
             If the answer is not in context, please say you don't know and ask to clarify the question.
+
+            If the user's query is in a specific language (e.g., Korean, Japanese, Chinese), 
+            respond in the same language. Match the language of your response to the user's input language.
             """,
         ),
         MessagesPlaceholder("chat_history"),
@@ -62,13 +64,34 @@ search_prompt = ChatPromptTemplate.from_messages(
             If the answer is not in context, please say you don't know and ask to clarify the question.
             Do not repeat the short answer.
 
-            When you write the explnation, please cite the source like [1], [2] if possible.
-            Thyen, put the cited references including citation number, title, and URL at the end of the answer.
-            Each reference should be in a new line in the markdown format like this:
+            If the user's query is in a specific language (e.g., Korean, Japanese, Chinese), 
+            respond in the same language. Match the language of your response to the user's input language.
 
-            [1] Title - URL
-            [2] Title - URL
-            ...
+            CRITICAL - CITATION REQUIREMENTS:
+            You MUST cite EVERY piece of information using [X] notation. No statement should be made without a citation.
+            
+            IMPORTANT: Citation and Reference Rules:
+            1. EVERY sentence must end with a citation [X]
+            2. Multiple citations in one sentence should be listed like [1,2,3]
+            3. Always include a "References:" section at the end
+            4. List all references in order
+            5. Each reference must include both title and URL
+
+            ✅ CORRECT Example:
+            "Palo Alto requires residential parking permits in downtown areas [1]. The annual permit fee is $50 for residents [2], 
+            and applications can be submitted online or in person at City Hall [2,3]."
+
+            Another example in Korean:
+            "서울의 인구는 약 970만 명입니다 [1]. 최근 대중교통 이용률이 증가하고 있으며 [2], 
+            특히 지하철 이용객이 20% 증가했습니다 [3]."
+
+            References:
+            [1] 서울시 인구통계 2023 - https://seoul.go.kr/statistics
+            [2] 서울 교통현황 보고서 - https://seoul.go.kr/transport
+            [3] 대중교통 이용분석 - https://seoul.go.kr/metro
+
+            If you cannot find a specific reference in the context, indicate this clearly 
+            with "[Source not found in context]" but still try to provide the information.
             """,
         ),
         MessagesPlaceholder("chat_history"),
@@ -85,20 +108,34 @@ search_prompt = ChatPromptTemplate.from_messages(
 
 
 query_context_expansion_prompt = """
-For a given query and context(if provided), expand it with related questions and search the web for answers.
-Try to understand the purpose of the query and expand  with upto three related questions 
-to privde answer to the original query. 
-Note that it's for keyword-based search engines, so it should be short and concise.
+You are a search query expansion expert. For a given query, generate related search queries that will help find comprehensive information.
 
-Please write in Python LIST format like this:
-["number of people in France?", How many people in France?", "France population"]
+IMPORTANT RULES:
+1. Match the language of the expanded queries to the original query's language
+2. Generate 2-3 alternative phrasings or related aspects of the query
+3. Keep queries concise and search-engine friendly
+4. Focus on different aspects or synonyms of the original query
+5. If the query is in a non-English language (e.g., Korean, Japanese, Chinese), all expanded queries should be in that same language
+
+Examples:
+
+English query: "how to get parking permit in boston"
+["boston residential parking permit application", "boston parking permit cost", "how to apply for boston street parking permit"]
+
+Korean query: "서울 주차 등록하는 방법"
+["서울시 주차등록증 신청", "서울 거주자 주차등록 절차", "서울시 주차허가증 발급"]
+
+Japanese query: "東京都 運転免許 更新"
+["東京都 運転免許更新手続き", "運転免許センター 更新方法", "東京 免許更新 必要書類"]
+
+Please write in Python LIST format.
 
 ---
 Context: {context}
 ----
 History: {chat_history}
 ---
-Orignal query: {query}
+Original query: {query}
 """
 
 
@@ -168,8 +205,12 @@ def search(query, chat_history, context=None):
     # combine all queries with "OR" operator
     or_merged_search_query = " OR ".join(q_list)
     with st.spinner(f"Searching for '{or_merged_search_query}'..."):
-        results = ddg_search.invoke(or_merged_search_query)
-        return results
+        loader = BraveSearchLoader(
+            api_key=st.secrets["BRAVE_API_KEY"],
+            query=or_merged_search_query, search_kwargs={"count": 3}
+        )
+        return loader.load()
+ 
 
 
 if "messages" not in st.session_state:

@@ -11,6 +11,9 @@ $(VENV)/bin/activate: requirements.txt
 chatopenai: $(VENV)/bin/activate
 	$(STREAMLIT) run chatopenai.py
 
+coldmail: $(VENV)/bin/activate
+	$(STREAMLIT) run coldmail.py
+
 chat: $(VENV)/bin/activate
 	$(STREAMLIT) run chat.py 
 
