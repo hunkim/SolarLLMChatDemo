@@ -306,7 +306,7 @@ if st.button("Generate Cold Email", type="primary"):
                     # Add copy button
                     st.button(
                         "📋 Copy to Clipboard",
-                        key=f"copy_{email['target_company']}",
+                        key=f"copy2_{email['target_company']}",
                         on_click=lambda text=email["email_content"]: st.write(text)
                     )
                 else:
