@@ -66,6 +66,7 @@ COLD_EMAIL_TEMPLATE = """You are a professional cold email writer.
 Based on the following information, create a compelling cold email:
 - Your Company: {company_name}
 - Your Product/Service: {product}
+- Company Website: {company_url}
 - Your Contact Information: {contact_info}
 
 Target Company Information:
@@ -73,11 +74,13 @@ Target Company Information:
 - Business Description: {target_business}
 - Contact Email: {target_email}
 
-Use the example email as a reference for tone and structure:
-{example_email}
+Use these example emails as reference for tone and structure:
+{example_emails}
 
 Make the email professional, concise, and persuasive.
-Include a clear value proposition and call to action that's specific to the target company's business.
+Include a clear value proposition and call to action.
+Always include both the website and contact information in the signature.
+End with an invitation to visit our website for more information and to contact us.
 reply in the same language of the user query.
 
 Please put <END> in the end of your answer."""
@@ -86,10 +89,12 @@ Please put <END> in the end of your answer."""
 if "cold_email_info" not in st.session_state:
     st.session_state.cold_email_info = {
         "company_name": "Upstage.AI",
+        "company_url": "https://upstage.ai",
         "product": "We specialize in Document AI and Large Language Models (LLMs), offering cutting-edge solutions that combine both technologies. Our products help businesses automate document processing, enhance information extraction, and leverage advanced AI capabilities for improved efficiency and decision-making.",
         "contact_info": "contact@upstage.ai",
         "target_companies": "Enterprise companies seeking advanced AI solutions for document processing and natural language understanding",
-        "cold_email_example": """Subject: Enhancing Coupang's E-commerce Experience with AI Solutions
+        "cold_email_examples": [
+            """Subject: Enhancing Coupang's E-commerce Experience with AI Solutions
 
 Dear Coupang Team,
 
@@ -104,10 +109,45 @@ Given Coupang's position as South Korea's largest e-commerce platform, I wanted 
 
 Would you be open to a brief conversation about how these solutions could benefit Coupang's operations?
 
-Please feel free to reach out to us at contact@upstage.ai to schedule a discussion.
+To learn more about our solutions, please visit us at https://upstage.ai
+
+I'm happy to schedule a call or provide more information. You can reach me at contact@upstage.ai.
 
 Best regards,
 Upstage.AI Team""",
+            """Subject: AI Solutions for Samsung Electronics' Manufacturing Process
+
+Dear Samsung Electronics Team,
+
+I'm reaching out from Upstage.AI regarding our advanced AI solutions that could enhance your manufacturing and quality control processes.
+
+Our Document AI and LLM technologies have helped leading manufacturers:
+• Reduce quality inspection time by 60%
+• Automate technical documentation processing
+• Improve defect detection accuracy by 45%
+• Streamline supplier communication and documentation
+
+Would you be interested in discussing how these solutions could benefit Samsung Electronics' operations?
+
+Best regards,
+Upstage.AI Team""",
+            """Subject: Revolutionizing Hyundai Motor's Documentation Systems
+
+Hello Hyundai Motor Team,
+
+I'm writing from Upstage.AI about our AI-powered document processing solutions that could transform your technical documentation and maintenance manual systems.
+
+Our technology has demonstrated:
+• 75% reduction in manual document processing time
+• Enhanced accuracy in multi-language technical documentation
+• Automated parts catalog management
+• Improved service manual accessibility and searchability
+
+Could we schedule a brief call to explore how these capabilities align with Hyundai's digital transformation goals?
+
+Best regards,
+Upstage.AI Team"""
+        ],
         "additional_notes": ""
     }
 
@@ -123,35 +163,35 @@ def generate_emails(company_info):
     st.markdown("## Generating Cold Emails")
     
     for idx, target in enumerate(target_companies, 1):
-        company_container = st.container()
-        with company_container:
-            st.markdown(f"### 📧 {target['company_name']} ({idx}/{len(target_companies)})")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown("🎯 **Target Company Information**")
-                st.markdown(f"""
-                - Company Name: {target['company_name']}
-                - Main Business: {target['main_business']}
-                - Contact Email: {target['contact_email']}
-                """)
+        with st.status(f"📧 Generating email for {target['company_name']} ({idx}/{len(target_companies)})", expanded=True) as status:
+            status.write("🎯 **Target Company Information**")
+            status.markdown(f"""
+            - Company Name: {target['company_name']}
+            - Main Business: {target['main_business']}
+            - Contact Email: {target['contact_email']}
+            """)
             
             chain = ChatPromptTemplate.from_messages([
                 ("human", COLD_EMAIL_TEMPLATE)
             ]) | llm | StrOutputParser()
             
             try:
-                with col2:
-                    st.write("⚙️ Generating personalized content...")
+                status.write("⚙️ Generating personalized content...")
+                
+                # Filter out empty examples and join them
+                examples = "\n\nEXAMPLE EMAIL #".join(
+                    [ex for ex in company_info["cold_email_examples"] if ex.strip()]
+                )
                 
                 response = chain.invoke({
                     "company_name": company_info["company_name"],
                     "product": company_info["product"],
+                    "company_url": company_info["company_url"],
                     "contact_info": company_info["contact_info"],
                     "target_company_name": target["company_name"],
                     "target_business": target["main_business"],
                     "target_email": target["contact_email"],
-                    "example_email": company_info["cold_email_example"]
+                    "example_emails": f"EXAMPLE EMAIL #1{examples}"
                 })
                 
                 email_content = response.split("<END>")[0].strip()
@@ -161,19 +201,18 @@ def generate_emails(company_info):
                     "status": "success"
                 })
                 
-                with col2:
-                    st.write("✅ Email generated successfully!")
-                    st.markdown("#### Generated Email")
-                    st.markdown(f"""
-                        <div style="background-color: #f0f2f6; padding: 20px; border-radius: 5px;">
-                            {email_content}
-                        </div>
-                        """, unsafe_allow_html=True)
-                    st.button(
-                        "📋 Copy to Clipboard",
-                        key=f"copy_{target['company_name']}",
-                        on_click=lambda text=email_content: st.write(text)
-                    )
+                status.update(label=f"✅ Email generated for {target['company_name']}", state="complete")
+                status.markdown("#### Generated Email")
+                status.markdown(f"""
+                    <div style="background-color: #f0f2f6; padding: 20px; border-radius: 5px;">
+                        {email_content}
+                    </div>
+                    """, unsafe_allow_html=True)
+                st.button(
+                    "📋 Copy to Clipboard",
+                    key=f"copy_{target['company_name']}",
+                    on_click=lambda text=email_content: st.write(text)
+                )
             
             except Exception as e:
                 emails.append({
@@ -184,9 +223,7 @@ def generate_emails(company_info):
                 with col2:
                     st.write("❌ Error occurred during generation")
                     st.error(f"Error: {str(e)}")
-            
-            st.divider()  # Add visual separation between emails
-    
+                
     # Show summary statistics at the end
     st.markdown("## Summary")
     col1, col2, col3 = st.columns(3)
@@ -208,6 +245,10 @@ st.session_state.cold_email_info["company_name"] = st.text_input(
     "Your Company Name", 
     st.session_state.cold_email_info["company_name"]
 )
+st.session_state.cold_email_info["company_url"] = st.text_input(
+    "Company Website URL",
+    st.session_state.cold_email_info["company_url"]
+)
 st.session_state.cold_email_info["product"] = st.text_area(
     "Product/Service Description", 
     st.session_state.cold_email_info["product"],
@@ -217,11 +258,16 @@ st.session_state.cold_email_info["contact_info"] = st.text_input(
     "Contact Information", 
     st.session_state.cold_email_info["contact_info"]
 )
-st.session_state.cold_email_info["additional_notes"] = st.text_area(
-    "Example Email", 
-    st.session_state.cold_email_info["cold_email_example"],
-    height=300
-)
+
+# Simplified text area inputs with pre-populated examples
+st.subheader("Example Emails (Up to 3)")
+for i in range(3):
+    st.session_state.cold_email_info["cold_email_examples"][i] = st.text_area(
+        f"Example Email {i+1}",
+        value=st.session_state.cold_email_info["cold_email_examples"][i],
+        height=200,
+        key=f"example_email_{i}"
+    )
 
 # Generate button
 if st.button("Generate Cold Email", type="primary"):
