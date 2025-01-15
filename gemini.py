@@ -407,7 +407,10 @@ def main():
     search_input = st.text_input("Enter your search query:", search_query or "Upstage AI 최신 제품?")
 
     if st.button("Search") or search_query:
-        perform_search_and_display(search_input)
+        if not search_input.strip():
+            st.warning("Please enter a search keyword to begin.")
+        else:
+            perform_search_and_display(search_input)
 
 
 if __name__ == "__main__":
