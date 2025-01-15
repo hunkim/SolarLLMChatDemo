@@ -312,3 +312,4 @@ if st.button("Generate Cold Email", type="primary"):
                 else:
                     st.error(email["email_content"])
 
+

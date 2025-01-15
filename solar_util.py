@@ -10,8 +10,34 @@ from tokenizers import Tokenizer
 
 solar_tokenizer = Tokenizer.from_pretrained("upstage/solar-pro-preview-tokenizer")
 
-def initialize_solar_llm():
-    MODEL_NAME = st.secrets.get("SOLAR_MODEL_NAME", "solar-pro")
+
+def truncate_to_token_limit(text: str, max_tokens: int = 15000) -> str:
+    """
+    Truncate text to fit within max token limit using Solar tokenizer.
+    """
+    tokenizer = Tokenizer.from_pretrained("upstage/solar-pro-tokenizer")
+    encoded = tokenizer.encode(text)
+    
+    if len(encoded.ids) <= max_tokens:
+        return text
+    
+    print(f"Truncating text from {len(encoded.ids)} tokens to {max_tokens} tokens")
+    
+    # Find the last period within the token limit to avoid cutting mid-sentence
+    truncated_ids = encoded.ids[:max_tokens]
+    truncated_text = tokenizer.decode(truncated_ids)
+    
+    # Try to find the last complete sentence
+    last_period = truncated_text.rfind('.')
+    if last_period > 0:
+        truncated_text = truncated_text[:last_period + 1]
+    
+    return truncated_text
+
+
+def initialize_solar_llm(MODEL_NAME=None):
+    if MODEL_NAME is None:
+        MODEL_NAME = st.secrets.get("SOLAR_MODEL_NAME", "solar-pro")
 
     # Initialize llm with default values
     llm_kwargs = {"model": MODEL_NAME}

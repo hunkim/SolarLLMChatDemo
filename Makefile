@@ -1,12 +1,25 @@
+# Define the two virtual environments
 VENV = .venv
+BROWSER_VENV = .venv-browser
 PYTHON = $(VENV)/bin/python3
+BROWSER_PYTHON = $(BROWSER_VENV)/bin/python3
 PIP = $(VENV)/bin/pip3
+BROWSER_PIP = $(BROWSER_VENV)/bin/pip3
 STREAMLIT = $(VENV)/bin/streamlit
+BROWSER_STREAMLIT = $(BROWSER_VENV)/bin/streamlit
 GRADIO = $(VENV)/bin/gradio
 
+# Basic venv without browser dependencies
 $(VENV)/bin/activate: requirements.txt
 	python3 -m venv $(VENV)
 	$(PIP) install -r requirements.txt
+
+# Browser-enabled venv with playwright
+$(BROWSER_VENV)/bin/activate: requirements.txt
+	python3 -m venv $(BROWSER_VENV)
+	$(BROWSER_PIP) install -r requirements.txt
+	$(BROWSER_PIP) install playwright
+	$(BROWSER_PYTHON) -m playwright install
 
 chatopenai: $(VENV)/bin/activate
 	$(STREAMLIT) run chatopenai.py
@@ -25,6 +38,9 @@ longimg: $(VENV)/bin/activate
 
 chatpdfemb: $(VENV)/bin/activate
 	$(STREAMLIT) run chatpdfemb.py
+
+gemini: $(VENV)/bin/activate
+	$(STREAMLIT) run gemini.py
 
 chatgradio: $(VENV)/bin/activate
 	$(GRADIO) chatgradio.py
@@ -59,6 +75,10 @@ podcast: $(VENV)/bin/activate
 biz_help: $(VENV)/bin/activate
 	$(STREAMLIT) run biz_help.py
 
+info_fill: $(BROWSER_VENV)/bin/activate
+	$(BROWSER_STREAMLIT) run info_fill.py
+
 clean:
 	rm -rf __pycache__
 	rm -rf $(VENV)
+	rm -rf $(BROWSER_VENV)
