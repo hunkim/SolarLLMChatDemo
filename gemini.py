@@ -221,91 +221,13 @@ def perform_search_and_display(search_query: str, is_suggestion: bool = False) -
         # Display results and sources
         st.markdown(result["summary"])
 
-        if result["sources"]:
-            st.markdown("## Sources")
-            # Create a scrollable container for sources
-            st.markdown(
-                """
-                <style>
-                    .sources-container {
-                        max-height: 600px;
-                        overflow-y: auto;
-                        padding-right: 10px;
-                    }
-                    .sources-container::-webkit-scrollbar {
-                        width: 8px;
-                    }
-                    .sources-container::-webkit-scrollbar-track {
-                        background: #f1f1f1;
-                        border-radius: 10px;
-                    }
-                    .sources-container::-webkit-scrollbar-thumb {
-                        background: #888;
-                        border-radius: 10px;
-                    }
-                    .sources-container::-webkit-scrollbar-thumb:hover {
-                        background: #555;
-                    }
-                    .search-result {
-                        margin-bottom: 20px;
-                        font-family: arial, sans-serif;
-                    }
-                    .search-title {
-                        font-size: 16px;
-                        line-height: 1.3;
-                        margin-bottom: 3px;
-                    }
-                    .search-url {
-                        color: #006621;
-                        font-size: 13px;
-                        margin-bottom: 3px;
-                    }
-                    .search-snippet {
-                        color: #545454;
-                        font-size: 14px;
-                        line-height: 1.57;
-                    }
-                </style>
-                <div class="sources-container">
-                """,
-                unsafe_allow_html=True,
-            )
-
-            for idx, source in enumerate(result["sources"], 1):
-                # Combine all contexts into a single string and limit length
-                combined_content = " ".join(
-                    [context["text"] for context in source["contexts"]]
-                )[:200] + "..."  # Limit snippet length
-
-                # Create container for each source in Google search style
-                st.markdown(
-                    f"""
-                    <div class="search-result" style="margin-bottom: 12px;">
-                        <span class="search-title" style="font-family: arial, sans-serif;">
-                            <a href="{source['url']}" target="_blank" style="color: #1a0dab; text-decoration: none;">
-                                [{idx}] {source['title']}
-                            </a>
-                        </span>
-                        <span style="color: #545454; font-size: 14px; margin-left: 8px;">
-                            {combined_content}
-                        </span>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-
-            # Close the scrollable container
-            st.markdown("</div>", unsafe_allow_html=True)
 
     # Generate and display suggested queries
     with st.spinner("Generating suggested queries..."):
         suggested_queries = generate_search_query(search_query, result["summary"])[:3]
         
-        st.markdown("<hr>", unsafe_allow_html=True)
-        st.markdown(
-            "<p style='color: #666; font-size: 0.8em; margin-bottom: 4px;'>Suggested searches:</p>",
-            unsafe_allow_html=True,
-        )
+        st.markdown("### Suggested searches")
+
         cols = st.columns(3)
         for i, query in enumerate(suggested_queries):
             encoded_query = urllib.parse.quote(query)  # Add URL encoding
@@ -338,6 +260,82 @@ def perform_search_and_display(search_query: str, is_suggestion: bool = False) -
                 """,
                 unsafe_allow_html=True
             )
+
+    if result["sources"]:
+        st.markdown("### Sources")
+        # Create a scrollable container for sources
+        st.markdown(
+            """
+            <style>
+                .sources-container {
+                    max-height: 600px;
+                    overflow-y: auto;
+                    padding-right: 10px;
+                }
+                .sources-container::-webkit-scrollbar {
+                    width: 8px;
+                }
+                .sources-container::-webkit-scrollbar-track {
+                    background: #f1f1f1;
+                    border-radius: 10px;
+                }
+                .sources-container::-webkit-scrollbar-thumb {
+                    background: #888;
+                    border-radius: 10px;
+                }
+                .sources-container::-webkit-scrollbar-thumb:hover {
+                    background: #555;
+                }
+                .search-result {
+                    margin-bottom: 20px;
+                    font-family: arial, sans-serif;
+                }
+                .search-title {
+                    font-size: 16px;
+                    line-height: 1.3;
+                    margin-bottom: 3px;
+                }
+                .search-url {
+                    color: #006621;
+                    font-size: 13px;
+                    margin-bottom: 3px;
+                }
+                .search-snippet {
+                    color: #545454;
+                    font-size: 14px;
+                    line-height: 1.57;
+                }
+            </style>
+            <div class="sources-container">
+            """,
+            unsafe_allow_html=True,
+        )
+
+        for idx, source in enumerate(result["sources"], 1):
+            # Combine all contexts into a single string and limit length
+            combined_content = " ".join(
+                [context["text"] for context in source["contexts"]]
+            )[:200] + "..."  # Limit snippet length
+
+            # Create container for each source in Google search style
+            st.markdown(
+                f"""
+                <div class="search-result" style="margin-bottom: 12px;">
+                    <span class="search-title" style="font-family: arial, sans-serif;">
+                        <a href="{source['url']}" target="_blank" style="color: #1a0dab; text-decoration: none;">
+                            [{idx}] {source['title']}
+                        </a>
+                    </span>
+                    <span style="color: #545454; font-size: 14px; margin-left: 8px;">
+                        {combined_content}
+                    </span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        # Close the scrollable container
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 def main():
