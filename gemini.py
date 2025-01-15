@@ -14,6 +14,7 @@ import urllib.parse
 from tinydb import TinyDB, Query
 from datetime import datetime, timedelta
 import hashlib
+import time
 
 
 def format_output():
@@ -250,11 +251,8 @@ def perform_search_and_display(search_query: str, is_suggestion: bool = False) -
     with st.spinner("Searching... Please wait"):
         result = search(search_query)
 
-        # Display web search queries
-        st.markdown(
-            "<p style='color: #666; font-size: 0.8em; margin-bottom: 4px;'>Search queries used:</p>",
-            unsafe_allow_html=True,
-        )
+    # Display web search queries in a collapsible section
+    with st.expander("Search queries used", expanded=False):
         for query in result["web_search_query"]:
             st.markdown(
                 f"""
@@ -274,18 +272,15 @@ def perform_search_and_display(search_query: str, is_suggestion: bool = False) -
                 unsafe_allow_html=True,
             )
 
-        st.markdown("<div style='margin: 12px 0;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin: 12px 0;'></div>", unsafe_allow_html=True)
 
-        # Display results and sources
-        st.markdown(result["summary"])
-
+    # Display results and sources
+    st.markdown(result["summary"])
 
     # Generate and display suggested queries
     with st.spinner("Generating suggested queries..."):
         suggested_queries = generate_search_query(search_query, result["summary"])[:3]
         
-        st.markdown("### Suggested searches")
-
         cols = st.columns(3)
         for i, query in enumerate(suggested_queries):
             encoded_query = urllib.parse.quote(query)  # Add URL encoding
@@ -380,8 +375,9 @@ def perform_search_and_display(search_query: str, is_suggestion: bool = False) -
                 f"""
                 <div class="search-result" style="margin-bottom: 12px;">
                     <span class="search-title" style="font-family: arial, sans-serif;">
+                        <span style="color: #545454; margin-right: 4px;">[{idx}]</span>
                         <a href="{source['url']}" target="_blank" style="color: #1a0dab; text-decoration: none;">
-                            [{idx}] {source['title']}
+                            {source['title']}
                         </a>
                     </span>
                     <span style="color: #545454; font-size: 14px; margin-left: 8px;">
