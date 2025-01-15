@@ -11,7 +11,9 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import AIMessage, HumanMessage
 import urllib.parse
-
+from tinydb import TinyDB, Query
+from datetime import datetime, timedelta
+import hashlib
 
 
 def format_output():
@@ -66,15 +68,38 @@ def format_response_to_markdown(text: str) -> str:
     return "\n\n".join(formatted_paragraphs)
 
 
-def search(keyword: str) -> Dict[str, Any]:
-    """Perform a search using Google's Generative AI"""
-    api_key = os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        raise ValueError("GOOGLE_API_KEY is not set in environment variables")
+def get_cache_db():
+    """Initialize TinyDB database for caching"""
+    return TinyDB('search_cache.json')
 
+
+def generate_cache_key(query: str) -> str:
+    """Generate a consistent cache key for a query"""
+    return hashlib.md5(query.encode()).hexdigest()
+
+
+def is_cache_valid(timestamp: str, hours: int = 1) -> bool:
+    """Check if cached data is still valid"""
+    cached_time = datetime.fromisoformat(timestamp)
+    return datetime.now() - cached_time < timedelta(hours=hours)
+
+
+def search(keyword: str) -> Dict[str, Any]:
+    """Perform a search using Google's Generative AI with caching"""
+    # Initialize cache
+    db = get_cache_db()
+    cache_key = generate_cache_key(keyword)
+    Entry = Query()
+    
+    # Check cache first
+    cached_result = db.get(Entry.cache_key == cache_key)
+    if cached_result and is_cache_valid(cached_result['timestamp']):
+        return cached_result['data']
+
+    # Original search logic
     try:
         # Initialize the Google Generative AI client
-        client = genai.Client(api_key=api_key)
+        client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
         model_id = "gemini-2.0-flash-exp"
 
         # Configure Google Search tool
@@ -128,12 +153,20 @@ def search(keyword: str) -> Dict[str, Any]:
 
         formatted_text = format_response_to_markdown(text)
 
-        return {
-            "summary": formatted_text,
-            "sources": sources,
-            "query": keyword,
-            "web_search_query": metadata.web_search_queries,
+        # Store result in cache before returning
+        cache_data = {
+            'cache_key': cache_key,
+            'data': {
+                "summary": formatted_text,
+                "sources": sources,
+                "query": keyword,
+                "web_search_query": metadata.web_search_queries,
+            },
+            'timestamp': datetime.now().isoformat()
         }
+        db.upsert(cache_data, Entry.cache_key == cache_key)
+
+        return cache_data['data']
 
     except Exception as error:
         print(f"Search error: {error}")
@@ -141,42 +174,67 @@ def search(keyword: str) -> Dict[str, Any]:
 
 
 def generate_search_query(keyword: str, results: str) -> List[str]:
-    llm = ChatUpstage(model="solar-mini", model_kwargs={"response_format":{"type":"json_object"}})
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                """You are a helpful assistant that generates search queries based on a user's query and the results of a previous search.
-        Always return a JSON object with a "suggestions" array containing 3-5 search queries.
-        IMPORTANT: You must detect the language of the input query and respond STRICTLY in the SAME LANGUAGE.
-        - If the input query is in Korean, you MUST generate Korean search queries only
-        - If the input query is in English, you MUST generate English search queries only
-        
-        Example 1 (Korean query -> Korean response):
-        Input: "엔비디아 최신 뉴스"
-        Output: {{"suggestions": ["엔비디아 주가 현황", "엔비디아 신제품 출시 2024", "엔비디아 AI 개발 현황", "엔비디아 최신 파트너십"]}}
-        
-        Example 2 (English query -> English response):
-        Input: "latest nvidia news"
-        Output: {{"suggestions": ["nvidia stock price today", "nvidia new product announcements 2024", "nvidia AI developments", "nvidia partnerships latest"]}}
-        
-        Remember: The response language MUST MATCH the input query language.""",
-            ),
-            ("user", "User query: {keyword}\nPrevious search results: {results}"),
-            (
-                "user",
-                "Generate a JSON array of 3-5 new search queries that would help find more relevant information.",
-            ),
-        ]
-    )
-    chain = prompt | llm | StrOutputParser()
-    response = chain.invoke({"keyword": keyword, "results": results})
+    """Generate search queries with caching"""
+    # Initialize cache
+    db = get_cache_db()
+    cache_key = generate_cache_key(f"suggestions_{keyword}")
+    Entry = Query()
+    
+    # Check cache first
+    cached_result = db.get(Entry.cache_key == cache_key)
+    if cached_result and is_cache_valid(cached_result['timestamp']):
+        return cached_result['data']
 
-    # Ensure the response is properly parsed as JSON and handle slicing safely
+    # Original suggestion generation logic
     try:
-        response_json = json.loads(response)
-        queries = response_json.get("suggestions", [])
-        return queries if isinstance(queries, list) else [keyword]
+        llm = ChatUpstage(model="solar-mini", model_kwargs={"response_format":{"type":"json_object"}})
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """You are a helpful assistant that generates search queries based on a user's query and the results of a previous search.
+            Always return a JSON object with a "suggestions" array containing 3-5 search queries.
+            IMPORTANT: You must detect the language of the input query and respond STRICTLY in the SAME LANGUAGE.
+            - If the input query is in Korean, you MUST generate Korean search queries only
+            - If the input query is in English, you MUST generate English search queries only
+            
+            Example 1 (Korean query -> Korean response):
+            Input: "엔비디아 최신 뉴스"
+            Output: {{"suggestions": ["엔비디아 주가 현황", "엔비디아 신제품 출시 2024", "엔비디아 AI 개발 현황", "엔비디아 최신 파트너십"]}}
+            
+            Example 2 (English query -> English response):
+            Input: "latest nvidia news"
+            Output: {{"suggestions": ["nvidia stock price today", "nvidia new product announcements 2024", "nvidia AI developments", "nvidia partnerships latest"]}}
+            
+            Remember: The response language MUST MATCH the input query language.""",
+                ),
+                ("user", "User query: {keyword}\nPrevious search results: {results}"),
+                (
+                    "user",
+                    "Generate a JSON array of 3-5 new search queries that would help find more relevant information.",
+                ),
+            ]
+        )
+        chain = prompt | llm | StrOutputParser()
+        response = chain.invoke({"keyword": keyword, "results": results})
+
+        # Ensure the response is properly parsed as JSON and handle slicing safely
+        try:
+            response_json = json.loads(response)
+            queries = response_json.get("suggestions", [])
+            return queries if isinstance(queries, list) else [keyword]
+        except json.JSONDecodeError:
+            return [keyword]
+
+        # Store suggestions in cache before returning
+        cache_data = {
+            'cache_key': cache_key,
+            'data': queries,
+            'timestamp': datetime.now().isoformat()
+        }
+        db.upsert(cache_data, Entry.cache_key == cache_key)
+
+        return queries
     except json.JSONDecodeError:
         return [keyword]
 
