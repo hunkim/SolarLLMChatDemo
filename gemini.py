@@ -6,12 +6,12 @@ from google import genai
 from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
 import streamlit as st
 import json
+from langchain_upstage import ChatUpstage 
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import AIMessage, HumanMessage
 import urllib.parse
 
-from solar_util import initialize_solar_llm
 
 
 def format_output():
@@ -141,7 +141,7 @@ def search(keyword: str) -> Dict[str, Any]:
 
 
 def generate_search_query(keyword: str, results: str) -> List[str]:
-    llm = initialize_solar_llm("solar-mini")
+    llm = ChatUpstage(model="solar-mini", model_kwargs={"response_format":{"type":"json_object"}})
     prompt = ChatPromptTemplate.from_messages(
         [
             (
