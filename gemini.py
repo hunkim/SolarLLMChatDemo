@@ -243,10 +243,6 @@ def generate_search_query(keyword: str, results: str) -> List[str]:
 def perform_search_and_display(search_query: str, is_suggestion: bool = False) -> None:
     """
     Perform search and display results in the Streamlit UI
-    
-    Args:
-        search_query: The query to search for
-        is_suggestion: Whether this search came from a suggested query
     """
     with st.spinner("Searching... Please wait"):
         result = search(search_query)
@@ -283,35 +279,12 @@ def perform_search_and_display(search_query: str, is_suggestion: bool = False) -
         
         cols = st.columns(3)
         for i, query in enumerate(suggested_queries):
-            encoded_query = urllib.parse.quote(query)  # Add URL encoding
-            cols[i].markdown(
-                f"""
-                <div style="margin: 0.25rem;">
-                    <a href="?q={encoded_query}" 
-                       style="
-                           display: block;
-                           padding: 0.5rem 1rem;
-                           background-color: #ffffff;
-                           color: #0066cc;
-                           border: 1px solid #0066cc;
-                           border-radius: 0.25rem;
-                           text-decoration: none;
-                           text-align: center;
-                           font-size: 0.875rem;
-                           transition: all 0.2s;
-                           box-sizing: border-box;
-                           box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                           cursor: pointer;
-                           white-space: nowrap;
-                           overflow: hidden;
-                           text-overflow: ellipsis;
-                       "
-                       onmouseover="this.style.backgroundColor='#f0f7ff'; this.style.borderColor='#004499';"
-                       onmouseout="this.style.backgroundColor='#ffffff'; this.style.borderColor='#0066cc';"
-                    >{query}</a>
-                </div>
-                """,
-                unsafe_allow_html=True
+            encoded_query = urllib.parse.quote(query)
+            # Update to use st.query_params instead of direct URL manipulation
+            cols[i].button(
+                query,
+                key=f"suggestion_{i}",
+                on_click=lambda q=query: st.query_params.update({"q": q})
             )
 
     if result["sources"]:
@@ -394,19 +367,98 @@ def perform_search_and_display(search_query: str, is_suggestion: bool = False) -
 
 def main():
     """Main function to run the Streamlit app"""
-    st.title("Gemini & SolarLLM Search Demo")
+    st.set_page_config(page_title="Search Up", layout="wide")
 
-    # Get query parameters using the new API
+    # Custom CSS for a clean, Google-like UI
+    st.markdown("""
+        <style>
+            /* Hide Streamlit header and footer */
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            
+            /* Center content */
+            .block-container {padding-top: 2rem; padding-bottom: 2rem;}
+            
+            /* Search bar */
+            .search-bar {
+                display: flex;
+                justify-content: center;
+                margin-bottom: 2rem;
+            }
+            .search-bar input {
+                width: 50%;
+                padding: 0.5rem 1rem;
+                border: 1px solid #dfe1e5;
+                border-radius: 24px;
+                font-size: 1rem;
+            }
+            .search-bar input:focus {
+                outline: none;
+                box-shadow: 0 1px 6px rgba(32,33,36,.28);
+                border-color: rgba(223,225,229,0);
+            }
+            .search-bar button {
+                background-color: #f8f9fa;
+                border: 1px solid #f8f9fa;
+                border-radius: 4px;
+                color: #3c4043;
+                font-size: 0.875rem;
+                margin: 11px 4px;
+                padding: 0 16px;
+                line-height: 27px;
+                height: 36px;
+                min-width: 54px;
+                text-align: center;
+                cursor: pointer;
+                user-select: none;
+            }
+            .search-bar button:hover {
+                box-shadow: 0 1px 1px rgba(0,0,0,.1);
+                background-color: #f8f9fa;
+                border: 1px solid #dadce0;
+                color: #202124;
+            }
+            
+            /* Suggested queries */
+            .suggested-queries {
+                display: flex;
+                justify-content: center;
+                flex-wrap: wrap;
+                margin-top: 1rem;
+            }
+            
+            /* Sources */
+            .sources-container {
+                max-height: 600px;
+                overflow-y: auto;
+                padding-right: 10px;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # Search bar
+    search_col1, search_col2 = st.columns([3,1])
+    with search_col1:
+        search_input = st.text_input("", st.query_params.get("q", ""), key="search_input")
+        
+        # Check if Enter key is pressed in the search input
+        if st.session_state.get("search_input"):
+            if st.session_state["search_input"] != st.query_params.get("q", ""):
+                st.query_params["q"] = st.session_state["search_input"]
+                st.rerun()
+    
+    with search_col2:
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("Search"):
+            st.query_params["q"] = st.session_state["search_input"]
+            st.rerun()
+
     search_query = st.query_params.get("q", "")
-
-    # Update search input with query parameter
-    search_input = st.text_input("Enter your search query:", search_query or "Upstage AI 최신 제품?")
-
-    if st.button("Search") or search_query:
-        if not search_input.strip():
+    if search_query:
+        if not search_query.strip():
             st.warning("Please enter a search keyword to begin.")
         else:
-            perform_search_and_display(search_input)
+            perform_search_and_display(search_query)
 
 
 if __name__ == "__main__":
