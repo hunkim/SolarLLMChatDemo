@@ -447,8 +447,12 @@ def main():
     # Search bar
     search_col1, search_col2 = st.columns([3,1])
     with search_col1:
-        default_query = "Upstage AI 제품들과 그 차별성은 무엇이야?"
-        search_input = st.text_input("", st.query_params.get("q", default_query), key="search_input")
+        search_input = st.text_input(
+            "",
+            st.query_params.get("q", ""),
+            placeholder="Search anything...",
+            key="search_input"
+        )
         
         # Check if Enter key is pressed in the search input
         if st.session_state.get("search_input"):
@@ -462,8 +466,9 @@ def main():
             st.query_params["q"] = st.session_state["search_input"]
             st.rerun()
 
-    search_query = st.query_params.get("q", "")
-    if search_query:
+    # Only perform search if query parameter exists in URL
+    if "q" in st.query_params:
+        search_query = st.query_params["q"]
         if not search_query.strip():
             st.warning("Please enter a search keyword to begin.")
         else:
