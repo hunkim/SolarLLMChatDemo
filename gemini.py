@@ -369,6 +369,14 @@ def main():
     """Main function to run the Streamlit app"""
     st.set_page_config(page_title="Search Up", layout="wide")
 
+    # Add title and subtitle
+    st.markdown("""
+        <h1 style='text-align: center; margin-bottom: 0;'>SearchUp</h1>
+        <p style='text-align: center; color: #666; font-size: 0.9em; margin-top: 0;'>
+            powered by Google, Gemini, and Solar
+        </p>
+    """, unsafe_allow_html=True)
+
     # Custom CSS for a clean, Google-like UI
     st.markdown("""
         <style>
@@ -439,7 +447,8 @@ def main():
     # Search bar
     search_col1, search_col2 = st.columns([3,1])
     with search_col1:
-        search_input = st.text_input("", st.query_params.get("q", ""), key="search_input")
+        default_query = "Upstage AI 제품들과 그 차별성은 무엇이야?"
+        search_input = st.text_input("", st.query_params.get("q", default_query), key="search_input")
         
         # Check if Enter key is pressed in the search input
         if st.session_state.get("search_input"):
