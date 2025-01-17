@@ -240,14 +240,152 @@ def generate_search_query(keyword: str, results: str) -> List[str]:
         return [keyword]
 
 
+def generate_quick_answer(keyword: str, results: str) -> str:
+    """Generate a one-line quick answer with caching"""
+    # Initialize cache
+    db = get_cache_db()
+    cache_key = generate_cache_key(f"quick_answer_{keyword}")
+    Entry = Query()
+    
+    # Check cache first
+    cached_result = db.get(Entry.cache_key == cache_key)
+    if cached_result and is_cache_valid(cached_result['timestamp']):
+        return cached_result['data']
+
+    try:
+        llm = ChatUpstage(model="solar-mini", model_kwargs={"response_format":{"type":"json_object"}})
+        prompt = ChatPromptTemplate.from_messages([
+            (
+                "system",
+                """You are a helpful assistant that generates concise, one-line answers based on search results.
+                Always return a JSON object with a "quick_answer" string containing a direct, factual response.
+                IMPORTANT: You must detect the language of the input query and respond STRICTLY in the SAME LANGUAGE.
+                - If the input query is in Korean, respond in Korean
+                - If the input query is in English, respond in English
+                
+                The answer should be:
+                1. No more than 20 words
+                2. Direct and informative
+                3. Based on the most recent/relevant information from results
+                4. In the same language as the query
+                
+                Example 1 (Korean):
+                Input: "현재 비트코인 가격은?"
+                Output: {{"quick_answer": "비트코인은 현재 67,000달러 선에서 거래되고 있습니다."}}
+                
+                Example 2 (English):
+                Input: "What is Bitcoin's price?"
+                Output: {{"quick_answer": "Bitcoin is currently trading at around $67,000."}}""",
+            ),
+            ("user", "User query: {keyword}\nSearch results: {results}"),
+            ("user", "Generate a one-line quick answer based on the search results."),
+        ])
+        
+        chain = prompt | llm | StrOutputParser()
+        response = chain.invoke({"keyword": keyword, "results": results})
+
+        try:
+            response_json = json.loads(response)
+            quick_answer = response_json.get("quick_answer", "")
+            
+            # Store answer in cache
+            cache_data = {
+                'cache_key': cache_key,
+                'data': quick_answer,
+                'timestamp': datetime.now().isoformat()
+            }
+            db.upsert(cache_data, Entry.cache_key == cache_key)
+            
+            return quick_answer
+        except json.JSONDecodeError:
+            return ""
+
+    except Exception as e:
+        print(f"Quick answer generation error: {e}")
+        return ""
+
+
 def perform_search_and_display(search_query: str, is_suggestion: bool = False) -> None:
     """
-    Perform search and display results in the Streamlit UI
+    Perform search and display results in the Streamlit UI with progressive loading
     """
+    # First, perform the main search
     with st.spinner("Searching... Please wait"):
         result = search(search_query)
+        
+    # Display main results immediately
+    st.markdown(result["summary"])
+    
+    # Display sources if available
+    if result["sources"]:
+        st.markdown("### Sources")
+        with st.container():
+            for idx, source in enumerate(result["sources"], 1):
+                combined_content = " ".join(
+                    [context["text"] for context in source["contexts"]]
+                )[:200] + "..."
 
-    # Display web search queries in a collapsible section
+                st.markdown(
+                    f"""
+                    <div class="search-result" style="margin-bottom: 12px;">
+                        <span class="search-title" style="font-family: arial, sans-serif;">
+                            <span style="color: #545454; margin-right: 4px;">[{idx}]</span>
+                            <a href="{source['url']}" target="_blank" style="color: #1a0dab; text-decoration: none;">
+                                {source['title']}
+                            </a>
+                        </span>
+                        <span style="color: #545454; font-size: 14px; margin-left: 8px;">
+                            {combined_content}
+                        </span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+    # Create placeholder for quick answer
+    quick_answer_placeholder = st.empty()
+    
+    # Create placeholder for suggested queries
+    suggestions_placeholder = st.empty()
+    
+    # Start background tasks for quick answer and suggestions
+    with st.spinner("Generating additional insights..."):
+        # Generate quick answer in the background
+        quick_answer = generate_quick_answer(search_query, result["summary"])
+        if quick_answer:
+            # Insert quick answer at the top using the placeholder
+            quick_answer_placeholder.markdown(
+                f"""
+                <div style="
+                    background-color: #f8f9fa;
+                    border: 1px solid #e9ecef;
+                    border-radius: 8px;
+                    padding: 16px;
+                    margin-bottom: 20px;
+                    font-size: 1.1em;
+                    color: #1a73e8;
+                ">
+                    {quick_answer}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        # Generate and display suggested queries
+        suggested_queries = generate_search_query(search_query, result["summary"])[:3]
+        
+        # Use the placeholder to display suggestions
+        with suggestions_placeholder.container():
+            st.markdown("### Related Searches")
+            cols = st.columns(3)
+            for i, query in enumerate(suggested_queries):
+                cols[i].button(
+                    query,
+                    key=f"suggestion_{i}",
+                    on_click=lambda q=query: st.query_params.update({"q": q})
+                )
+
+    # Display web search queries in a collapsible section at the bottom
     with st.expander("Search queries used", expanded=False):
         for query in result["web_search_query"]:
             st.markdown(
@@ -267,102 +405,6 @@ def perform_search_and_display(search_query: str, is_suggestion: bool = False) -
                 """,
                 unsafe_allow_html=True,
             )
-
-    st.markdown("<div style='margin: 12px 0;'></div>", unsafe_allow_html=True)
-
-    # Display results and sources
-    st.markdown(result["summary"])
-
-    # Generate and display suggested queries
-    with st.spinner("Generating suggested queries..."):
-        suggested_queries = generate_search_query(search_query, result["summary"])[:3]
-        
-        cols = st.columns(3)
-        for i, query in enumerate(suggested_queries):
-            encoded_query = urllib.parse.quote(query)
-            # Update to use st.query_params instead of direct URL manipulation
-            cols[i].button(
-                query,
-                key=f"suggestion_{i}",
-                on_click=lambda q=query: st.query_params.update({"q": q})
-            )
-
-    if result["sources"]:
-        st.markdown("### Sources")
-        # Create a scrollable container for sources
-        st.markdown(
-            """
-            <style>
-                .sources-container {
-                    max-height: 600px;
-                    overflow-y: auto;
-                    padding-right: 10px;
-                }
-                .sources-container::-webkit-scrollbar {
-                    width: 8px;
-                }
-                .sources-container::-webkit-scrollbar-track {
-                    background: #f1f1f1;
-                    border-radius: 10px;
-                }
-                .sources-container::-webkit-scrollbar-thumb {
-                    background: #888;
-                    border-radius: 10px;
-                }
-                .sources-container::-webkit-scrollbar-thumb:hover {
-                    background: #555;
-                }
-                .search-result {
-                    margin-bottom: 20px;
-                    font-family: arial, sans-serif;
-                }
-                .search-title {
-                    font-size: 16px;
-                    line-height: 1.3;
-                    margin-bottom: 3px;
-                }
-                .search-url {
-                    color: #006621;
-                    font-size: 13px;
-                    margin-bottom: 3px;
-                }
-                .search-snippet {
-                    color: #545454;
-                    font-size: 14px;
-                    line-height: 1.57;
-                }
-            </style>
-            <div class="sources-container">
-            """,
-            unsafe_allow_html=True,
-        )
-
-        for idx, source in enumerate(result["sources"], 1):
-            # Combine all contexts into a single string and limit length
-            combined_content = " ".join(
-                [context["text"] for context in source["contexts"]]
-            )[:200] + "..."  # Limit snippet length
-
-            # Create container for each source in Google search style
-            st.markdown(
-                f"""
-                <div class="search-result" style="margin-bottom: 12px;">
-                    <span class="search-title" style="font-family: arial, sans-serif;">
-                        <span style="color: #545454; margin-right: 4px;">[{idx}]</span>
-                        <a href="{source['url']}" target="_blank" style="color: #1a0dab; text-decoration: none;">
-                            {source['title']}
-                        </a>
-                    </span>
-                    <span style="color: #545454; font-size: 14px; margin-left: 8px;">
-                        {combined_content}
-                    </span>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-        # Close the scrollable container
-        st.markdown("</div>", unsafe_allow_html=True)
 
 
 def main():
