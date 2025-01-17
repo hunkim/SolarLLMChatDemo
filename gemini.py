@@ -266,11 +266,11 @@ def generate_quick_answer(keyword: str, results: str) -> str:
                 3. Based on the most recent/relevant information from results
                 4. In the same language as the query
                 
-                Example 1 (Korean):
+                Example 1 (Korean query -> Korean response):
                 Input: "User query: 현재 비트코인 가격은?\nSearch results: 비트코인이 최근 강세를 보이며 현재 67,000달러 선에서 거래되고 있습니다. 이는 작년 대비 150% 상승한 수치이며, 전문가들은 연말까지 추가 상승 가능성을 전망하고 있습니다. 특히 최근 비트코인 ETF 승인 이후 기관 투자자들의 관심이 높아지면서 가격 상승세가 지속되고 있습니다."
                 Output: {{"quick_answer": "비트코인은 현재 67,000달러 선에서 거래되고 있습니다."}}
                 
-                Example 2 (English):
+                Example 2 (English query -> English response):
                 Input: "User query: What is Bitcoin's price?\nSearch results: Bitcoin continues its bullish trend, currently trading at around $67,000. This represents a 150% increase from last year, with experts predicting further gains by year-end. The recent approval of Bitcoin ETFs has particularly attracted institutional investors, contributing to the sustained price momentum."
                 Output: {{"quick_answer": "Bitcoin is currently trading at around $67,000."}}""",
             ),
