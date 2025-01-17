@@ -307,104 +307,158 @@ def generate_quick_answer(keyword: str, results: str) -> str:
 
 def perform_search_and_display(search_query: str, is_suggestion: bool = False) -> None:
     """
-    Perform search and display results in the Streamlit UI with progressive loading
+    Perform search and display results with enhanced source list design
     """
-    # First, perform the main search
-    with st.spinner("Searching... Please wait"):
+    # CSS with improved source list styling
+    st.markdown("""
+        <style>
+            .main .block-container {
+                padding: 2rem;
+                max-width: 800px;
+            }
+            
+            .quick-answer {
+                padding: 16px;
+                background: #f8f9fa;
+                border-left: 3px solid #1a73e8;
+                margin: 16px 0;
+            }
+            
+            .suggestion-link {
+                display: block;
+                padding: 8px 16px;
+                background: #f8f9fa;
+                border-radius: 20px;
+                color: #1a73e8;
+                text-align: center;
+                text-decoration: none;
+                margin: 8px 0;
+            }
+            
+            .suggestion-link:hover {
+                background: #e8f0fe;
+            }
+            
+            .source-item {
+                padding: 16px;
+                margin: 8px 0;
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                transition: background-color 0.2s ease;
+            }
+            
+            .source-item:hover {
+                background-color: #f8f9fa;
+            }
+            
+            .source-header {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 8px;
+            }
+            
+            .source-number {
+                color: #666;
+                font-size: 0.9em;
+                min-width: 24px;
+            }
+            
+            .source-link {
+                color: #1a73e8;
+                text-decoration: none;
+                font-weight: 500;
+                flex-grow: 1;
+                line-height: 1.4;
+            }
+            
+            .source-content {
+                color: #555;
+                font-size: 0.9em;
+                line-height: 1.5;
+                margin-left: 36px;
+            }
+            
+            h3 {
+                color: #202124;
+                margin: 24px 0 16px 0;
+                font-weight: 500;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    web_search_query_spot = st.empty()
+    summary_spot = st.empty()
+    # Main search
+    with st.spinner("Searching..."):
         result = search(search_query)
-        
-    # Display main results immediately
-    st.markdown(result["summary"])
-    
-    # Display sources if available
-    if result["sources"]:
-        st.markdown("### Sources")
-        with st.container():
-            for idx, source in enumerate(result["sources"], 1):
-                combined_content = " ".join(
-                    [context["text"] for context in source["contexts"]]
-                )[:200] + "..."
 
-                st.markdown(
-                    f"""
-                    <div class="search-result" style="margin-bottom: 12px;">
-                        <span class="search-title" style="font-family: arial, sans-serif;">
-                            <span style="color: #545454; margin-right: 4px;">[{idx}]</span>
-                            <a href="{source['url']}" target="_blank" style="color: #1a0dab; text-decoration: none;">
-                                {source['title']}
-                            </a>
-                        </span>
-                        <span style="color: #545454; font-size: 14px; margin-left: 8px;">
-                            {combined_content}
-                        </span>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+    # Search queries (only if there are queries)
+    if result.get("web_search_query"):
+        with web_search_query_spot.expander("🔍 Search queries used", expanded=False):
+            st.markdown("""
+                <style>
+                    .search-query-item {
+                        padding: 8px 12px;
+                        margin: 6px 0;
+                        background-color: #f0f2f6;
+                        border-radius: 6px;
+                        font-size: 0.9em;
+                        color: #444;
+                        border-left: 3px solid #1a73e8;
+                    }
+                </style>
+            """, unsafe_allow_html=True)
+            
+            for query in result["web_search_query"]:
+                st.markdown(f'<div class="search-query-item">{query}</div>', unsafe_allow_html=True)
 
-    # Create placeholder for quick answer
-    quick_answer_placeholder = st.empty()
-    
-    # Create placeholder for suggested queries
-    suggestions_placeholder = st.empty()
-    
-    # Start background tasks for quick answer and suggestions
-    with st.spinner("Generating additional insights..."):
-        # Generate quick answer in the background
-        quick_answer = generate_quick_answer(search_query, result["summary"])
-        if quick_answer:
-            # Insert quick answer at the top using the placeholder
-            quick_answer_placeholder.markdown(
-                f"""
-                <div style="
-                    background-color: #f8f9fa;
-                    border: 1px solid #e9ecef;
-                    border-radius: 8px;
-                    padding: 16px;
-                    margin-bottom: 20px;
-                    font-size: 1.1em;
-                    color: #1a73e8;
-                ">
-                    {quick_answer}
-                </div>
-                """,
+    if result["summary"]:
+        st.markdown(result["summary"])
+
+    # Quick answer (if available)
+    quick_answer = generate_quick_answer(search_query, result["summary"])
+    if quick_answer:
+        summary_spot.markdown(
+            f'<div class="quick-answer">{quick_answer}</div>',
+            unsafe_allow_html=True
+        )
+
+    # Related searches (only if there are suggestions)
+    suggested_queries = generate_search_query(search_query, result["summary"])
+    if suggested_queries and len(suggested_queries) > 0:
+        cols = st.columns(min(len(suggested_queries[:3]), 3))
+        for col, query in zip(cols, suggested_queries[:3]):
+            col.markdown(
+                f'<a href="?q={urllib.parse.quote(query)}" class="suggestion-link">{query}</a>',
                 unsafe_allow_html=True
             )
 
-        # Generate and display suggested queries
-        suggested_queries = generate_search_query(search_query, result["summary"])[:3]
-        
-        # Use the placeholder to display suggestions
-        with suggestions_placeholder.container():
-            st.markdown("### Related Searches")
-            cols = st.columns(3)
-            for i, query in enumerate(suggested_queries):
-                cols[i].button(
-                    query,
-                    key=f"suggestion_{i}",
-                    on_click=lambda q=query: st.query_params.update({"q": q})
+    # Sources with improved design
+    if result.get("sources"):
+        sources = [s for s in result["sources"] if s.get("title") and s.get("url")]
+        if sources:
+            st.markdown("### Sources")
+            for idx, source in enumerate(sources, 1):
+                content = " ".join([context["text"] for context in source["contexts"]])[:200] + "..."
+                st.markdown(
+                    f"""
+                    <div class="source-item">
+                        <div class="source-header">
+                            <span class="source-number">{idx}</span>
+                            <a href="{source['url']}" target="_blank" class="source-link">
+                                {source['title']}
+                            </a>
+                        </div>
+                        <div class="source-content">
+                            {content}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
                 )
 
-    # Display web search queries in a collapsible section at the bottom
-    with st.expander("Search queries used", expanded=False):
-        for query in result["web_search_query"]:
-            st.markdown(
-                f"""
-                <div style="
-                    background-color: #fafafa;
-                    border-left: 2px solid #dddddd;
-                    padding: 6px 12px;
-                    margin: 2px 0;
-                    border-radius: 0 2px 2px 0;
-                    font-family: monospace;
-                    font-size: 0.85em;
-                    color: #555;
-                ">
-                    {query}
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+
 
 
 def main():
