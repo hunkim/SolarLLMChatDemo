@@ -28,7 +28,18 @@ def is_korean(text):
 def korean_to_thai(text):
     translate_prompt = PromptTemplate(
         template="""You are a language translator. Translate the following text from Korean to Thai.
-Return the result in JSON format with 'translation' as the key.
+Here are some examples:
+
+Korean: 안녕하세요
+{"translation": "สวัสดีครับ/ค่ะ"}
+
+Korean: 감사합니다
+{"translation": "ขอบคุณครับ/ค่ะ"}
+
+Korean: 맛있어요
+{"translation": "อร่อยครับ/ค่ะ"}
+
+Now translate this:
 ---
 Korean: {text}
 ---
@@ -47,7 +58,18 @@ Response format:
 def thai_to_korean(text):
     translate_prompt = PromptTemplate(
         template="""You are a language translator. Translate the following text from Thai to Korean.
-Return the result in JSON format with 'translation' as the key.
+Here are some examples:
+
+Thai: สวัสดีครับ/ค่ะ
+{"translation": "안녕하세요"}
+
+Thai: ขอบคุณครับ/ค่ะ
+{"translation": "감사합니다"}
+
+Thai: อร่อยครับ/ค่ะ
+{"translation": "맛있어요"}
+
+Now translate this:
 ---
 Thai: {text}
 ---
