@@ -95,7 +95,7 @@ if prompt := st.chat_input("What is up?", value="태국의 국기는 무엇이�
 
         if 'enhanced_prompt' in new_prompt:
             prompt = new_prompt['enhanced_prompt']
-
+ 
     with st.chat_message("user"):
         st.markdown(prompt)
 
