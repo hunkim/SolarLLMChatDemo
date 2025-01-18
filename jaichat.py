@@ -81,7 +81,7 @@ for message in st.session_state.messages:
         st.markdown(message.content)
 
 enhance_prompt = st.toggle("Enhance prompt", False)
-if prompt := st.chat_input("What is up?", value="태국의 국기는 무엇이야? 무슨 색깔이지?"):
+if prompt := st.chat_input("What is up?"):
     # Check if input is Korean and translate if needed
     if is_korean(prompt):
         with st.status("Translating Korean to Thai..."):
