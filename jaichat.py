@@ -120,6 +120,5 @@ if prompt := st.chat_input("What is up?"):
         response = st.write_stream(get_response(prompt, st.session_state.messages))
         korean_response = thai_to_korean(response)
         st.write(korean_response)
-    st.session_state.messages.append(AIMessage(content=response))
 
 
