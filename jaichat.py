@@ -64,22 +64,12 @@ chat_with_history_prompt = ChatPromptTemplate.from_messages(
 def get_response(user_query, chat_history):
     chain = chat_with_history_prompt | jai | StrOutputParser()
 
-    response = ""
-    end_token = ""
-    for chunk in chain.stream(
-        {
-            "chat_history": chat_history,
-            "user_query": user_query,
-        }
-    ):
-        print(chunk)
-        response += chunk
-        end_token += chunk
-        
-      
-        yield chunk
-
-    yield response
+    return chain.stream(
+            {
+                "chat_history": chat_history,
+                "user_query": user_query,
+            }
+        )
 
 
 if "messages" not in st.session_state:
