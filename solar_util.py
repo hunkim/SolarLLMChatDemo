@@ -50,7 +50,6 @@ def initialize_solar_llm(MODEL_NAME=None):
     if "SOLAR_API_KEY" in st.secrets:
         llm_kwargs["api_key"] = st.secrets["SOLAR_API_KEY"]
 
-
     return ChatUpstage(**llm_kwargs)
 
 

@@ -78,6 +78,12 @@ biz_help: $(VENV)/bin/activate
 info_fill: $(BROWSER_VENV)/bin/activate
 	$(BROWSER_STREAMLIT) run info_fill.py
 
+jaisearch: $(BROWSER_VENV)/bin/activate
+	$(STREAMLIT) run jaisearch.py
+
+jaichat: $(BROWSER_VENV)/bin/activate
+	$(STREAMLIT) run jaichat.py
+
 clean:
 	rm -rf __pycache__
 	rm -rf $(VENV)
