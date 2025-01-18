@@ -33,29 +33,12 @@ chat_with_history_prompt = ChatPromptTemplate.from_messages(
 
 def get_response(user_query, chat_history):
     chain = chat_with_history_prompt | llm | StrOutputParser()
-
-    response = ""
-    end_token = ""
-    for chunk in chain.stream(
+    return chain.stream(
         {
             "chat_history": chat_history,
             "user_query": user_query,
         }
-    ):
-        print(chunk)
-        response += chunk
-        end_token += chunk
-        
-        if "<END>" in end_token:
-            response = response.split("<END>")[0]
-            break
-        
-        # Keep only the last 5 characters to check for <END>
-        end_token = end_token[-5:]
-        
-        yield chunk
-
-    yield response
+    )
 
 
 if "messages" not in st.session_state:

@@ -13,7 +13,7 @@ from solar_util import prompt_engineering
 
 import re
 
-llm = ChatUpstage(model=st.secrets["JAI_MODEL_NAME"], base_url=st.secrets["JAI_BASE_URL"], api_key=st.secrets["JAI_API_KEY"])
+jai = ChatUpstage(model=st.secrets["JAI_MODEL_NAME"], base_url=st.secrets["JAI_BASE_URL"], api_key=st.secrets["JAI_API_KEY"])
 solar_pro = ChatUpstage(model="solar-pro")
 
 st.set_page_config(page_title="Chat")
@@ -33,7 +33,7 @@ Korean: {text}
 Thai:""",
         input_variables=["text"]
     )
-    chain = translate_prompt | llm | StrOutputParser()
+    chain = translate_prompt | jai | StrOutputParser()
     return chain.invoke({"text": text})
 
 def thai_to_korean(text):
@@ -62,7 +62,7 @@ chat_with_history_prompt = ChatPromptTemplate.from_messages(
 
 
 def get_response(user_query, chat_history):
-    chain = chat_with_history_prompt | llm | StrOutputParser()
+    chain = chat_with_history_prompt | jai | StrOutputParser()
 
     response = ""
     end_token = ""
@@ -76,13 +76,7 @@ def get_response(user_query, chat_history):
         response += chunk
         end_token += chunk
         
-        if "<END>" in end_token:
-            response = response.split("<END>")[0]
-            break
-        
-        # Keep only the last 5 characters to check for <END>
-        end_token = end_token[-5:]
-        
+      
         yield chunk
 
     yield response
