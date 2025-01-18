@@ -31,13 +31,13 @@ def korean_to_thai(text):
 Here are some examples:
 
 Korean: 안녕하세요
-{"translation": "สวัสดีครับ/ค่ะ"}
+{{"translation": "สวัสดีครับ/ค่ะ"}}
 
 Korean: 감사합니다
-{"translation": "ขอบคุณครับ/ค่ะ"}
+{{"translation": "ขอบคุณครับ/ค่ะ"}}
 
 Korean: 맛있어요
-{"translation": "อร่อยครับ/ค่ะ"}
+{{"translation": "อร่อยครับ/ค่ะ"}}
 
 Now translate this:
 ---
@@ -61,13 +61,13 @@ def thai_to_korean(text):
 Here are some examples:
 
 Thai: สวัสดีครับ/ค่ะ
-{"translation": "안녕하세요"}
+{{"translation": "안녕하세요"}}
 
 Thai: ขอบคุณครับ/ค่ะ
-{"translation": "감사합니다"}
+{{"translation": "감사합니다"}}
 
 Thai: อร่อยครับ/ค่ะ
-{"translation": "맛있어요"}
+{{"translation": "맛있어요"}}
 
 Now translate this:
 ---
