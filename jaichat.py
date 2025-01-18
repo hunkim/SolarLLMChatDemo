@@ -12,6 +12,7 @@ from solar_util import initialize_solar_llm
 from solar_util import prompt_engineering
 
 import re
+import json
 
 jai = ChatUpstage(model=st.secrets["JAI_MODEL_NAME"], base_url=st.secrets["JAI_BASE_URL"], api_key=st.secrets["JAI_API_KEY"])
 solar_pro = ChatUpstage(model="solar-pro")
@@ -27,26 +28,40 @@ def is_korean(text):
 def korean_to_thai(text):
     translate_prompt = PromptTemplate(
         template="""You are a language translator. Translate the following text from Korean to Thai.
+Return the result in JSON format with 'translation' as the key.
 ---
 Korean: {text}
 ---
-Thai:""",
+Response format:
+{{"translation": "Thai translation here"}}""",
         input_variables=["text"]
     )
     chain = translate_prompt | jai | StrOutputParser()
-    return chain.invoke({"text": text})
+    result = chain.invoke({"text": text})
+    try:
+        return json.loads(result)["translation"]
+    except json.JSONDecodeError:
+        st.error("Failed to parse translation response")
+        return result
 
 def thai_to_korean(text):
     translate_prompt = PromptTemplate(
         template="""You are a language translator. Translate the following text from Thai to Korean.
+Return the result in JSON format with 'translation' as the key.
 ---
 Thai: {text}
 ---
-Korean:""",
+Response format:
+{{"translation": "Korean translation here"}}""",
         input_variables=["text"]
     )
     chain = translate_prompt | solar_pro | StrOutputParser()
-    return chain.invoke({"text": text})
+    result = chain.invoke({"text": text})
+    try:
+        return json.loads(result)["translation"]
+    except json.JSONDecodeError:
+        st.error("Failed to parse translation response")
+        return result
 
 chat_with_history_prompt = ChatPromptTemplate.from_messages(
     [
