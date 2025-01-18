@@ -112,7 +112,6 @@ if prompt := st.chat_input("What is up?"):
         if 'enhanced_prompt' in new_prompt:
             prompt = new_prompt['enhanced_prompt']
 
-    st.session_state.messages.append(HumanMessage(content=prompt))
     with st.chat_message("user"):
         st.markdown(prompt)
 
