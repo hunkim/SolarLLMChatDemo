@@ -180,8 +180,8 @@ def make_human_last_in_history(chat_history):
     ]
 
 
-def get_discussion_draft(topic, discussion, chat_history):
-    chain = discussion_prompt | get_llm() | StrOutputParser()
+def get_discussion_draft(topic, discussion, chat_history, llm):
+    chain = discussion_prompt | llm | StrOutputParser()
     discussion_candidate = chain.invoke(
         {
             "chat_history": chat_history,
@@ -193,9 +193,9 @@ def get_discussion_draft(topic, discussion, chat_history):
     return discussion_candidate
 
 
-def extract_search_keywords(topic, discussion_candidate):
+def extract_search_keywords(topic, discussion_candidate, llm):
     parser = JsonOutputParser(pydantic_object=SearchKeyword)
-    keyword_chain = search_keyword_extraction | solar | parser
+    keyword_chain = search_keyword_extraction | llm | parser
     try:
         search_keywords = keyword_chain.invoke(
             {
@@ -232,11 +232,11 @@ def get_discussion(topic, discussion, chat_history, llm, use_search=True):
     if use_search:
         with st.status("Writing discussion draft"):
             discussion_candidate = get_discussion_draft(
-                topic, discussion, new_chat_history
+                topic, discussion, new_chat_history, llm,
             )
 
         with st.status("Extracting search keywords"):
-            search_keywords = extract_search_keywords(topic, discussion_candidate)
+            search_keywords = extract_search_keywords(topic, discussion_candidate, llm)
 
         with st.status("Searching information"):
             search_results = perform_search(search_keywords)
