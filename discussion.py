@@ -12,16 +12,27 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.tools import DuckDuckGoSearchResults
+from langchain_upstage import ChatUpstage 
+
 
 from solar_util import initialize_solar_llm
 
 st.set_page_config(page_title="Discuss", page_icon="🗣️")
 st.title("Self-debating Solar Pro Preview")
 
-llm = initialize_solar_llm()
+solar = initialize_solar_llm()
+deepseek = ChatUpstage(model="deepseek-chat", base_url="https://api.deepseek.com/v1", api_key=st.secrets["DEEPSEEK_API_KEY"])
+
+llms = [deepseek, solar]
+
+llm_order = 0
+def get_llm():
+    global llm_order
+    llm = llms[llm_order]
+    llm_order = (llm_order + 1) % len(llms)
+    return llm
 
 ddg_search = DuckDuckGoSearchResults()
-
 
 # Define your desired data structure.
 class SearchKeyword(BaseModel):
@@ -118,7 +129,9 @@ discussion_prompt = ChatPromptTemplate.from_messages(
             Count each turn and put [Turn n/10] at the only beginning of your discussion only once.
             Please do only one turn.
 
-            Do not repeat the same point already mentioned. 
+            Do not repeat the same point already mentioned.
+
+            Important: If the topic is written in Korean, respond in Korean. If the topic is in English, respond in English. Match the language of your response to the language of the topic.
             ---
             Topic: {topic}
             """,
@@ -168,7 +181,7 @@ def make_human_last_in_history(chat_history):
 
 
 def get_discussion_draft(topic, discussion, chat_history):
-    chain = discussion_prompt | llm | StrOutputParser()
+    chain = discussion_prompt | get_llm() | StrOutputParser()
     discussion_candidate = chain.invoke(
         {
             "chat_history": chat_history,
@@ -182,7 +195,7 @@ def get_discussion_draft(topic, discussion, chat_history):
 
 def extract_search_keywords(topic, discussion_candidate):
     parser = JsonOutputParser(pydantic_object=SearchKeyword)
-    keyword_chain = search_keyword_extraction | llm | parser
+    keyword_chain = search_keyword_extraction | solar | parser
     try:
         search_keywords = keyword_chain.invoke(
             {
@@ -212,7 +225,8 @@ def perform_search(search_keywords):
         return []
 
 
-def get_discussion(topic, discussion, chat_history, use_search=True):
+def get_discussion(topic, discussion, chat_history, llm, use_search=True):
+    st.write(llm.model_name)
     new_chat_history = make_human_last_in_history(chat_history)
 
     if use_search:
@@ -250,7 +264,7 @@ def get_discussion(topic, discussion, chat_history, use_search=True):
 
 
 def get_summary(topic, chat_history):
-    chain = summary_prompt | llm | StrOutputParser()
+    chain = summary_prompt | deepseek | StrOutputParser()
     return chain.stream(
         {
             "chat_history": chat_history,
@@ -275,25 +289,28 @@ if st.button("Start Discussion"):
     previous_discussion = ""
     for i in range(5):
         with st.chat_message("user"):
+            llm = get_llm()
             discussion = st.write_stream(
                 get_discussion(
                     topic,
                     previous_discussion,
                     st.session_state.messages,
-                    use_search,
+                    llm = llm,
+                    use_search=use_search,
                 )
             )
 
-            st.session_state.messages.append(HumanMessage(content=discussion))
+            st.session_state.messages.append(HumanMessage(content=discussion ))
 
             if discussion.startswith("[Turn 10/10]"):
                 break
         with st.chat_message("assistant"):
+            llm = get_llm()
             previous_discussion = st.write_stream(
-                get_discussion(topic, discussion, st.session_state.messages, use_search)
+                get_discussion(topic, discussion, st.session_state.messages, llm = llm, use_search=use_search)
             )
 
-            st.session_state.messages.append(AIMessage(content=previous_discussion))
+            st.session_state.messages.append(AIMessage(content=previous_discussion ))
 
             if previous_discussion.startswith("[Turn 10/10]"):
                 break

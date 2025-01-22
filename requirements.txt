@@ -14,3 +14,5 @@ tokenizers
 pydantic
 crawl4ai
 tinydb
+duckduckgo-search 
+langchain-community
