@@ -289,7 +289,7 @@ if False:
             st.markdown(message.content)
 default_topic = "Where is the best place to visit in Korea?"
 topic = st.text_input("Discussion Topic", default_topic)
-use_search = st.toggle("Use Search", False)
+use_search = False and st.toggle("Use Search", False)
 if st.button("Start Discussion"):
     st.session_state.messages = []
     previous_discussion = ""
@@ -323,11 +323,11 @@ if st.button("Start Discussion"):
 
     ## summarize the discussion
     with st.chat_message("user"):
-        st.write("## DeepSeek-Reasoner")
-        st.write_stream(get_summary(topic, st.session_state.messages, llm = deepseek_r))
-
         st.write("## Solar-Summarizer")
         st.write_stream(get_summary(topic, st.session_state.messages, llm = solar))
 
         st.write("## Deepseek-Summarizer")
         st.write_stream(get_summary(topic, st.session_state.messages, llm = deepseek))
+
+        st.write("## DeepSeek-Reasoner")
+        st.write_stream(get_summary(topic, st.session_state.messages, llm = deepseek_r))
