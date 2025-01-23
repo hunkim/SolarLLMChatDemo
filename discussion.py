@@ -22,7 +22,7 @@ st.title("Self-debating Solar Pro Preview")
 
 solar = initialize_solar_llm()
 deepseek = ChatUpstage(model="deepseek-chat", base_url="https://api.deepseek.com/v1", api_key=st.secrets["DEEPSEEK_API_KEY"])
-
+deepseek_r = ChatUpstage(model="deepseek-reasoner", base_url="https://api.deepseek.com/v1", api_key=st.secrets["DEEPSEEK_API_KEY"])
 llms = [deepseek, solar]
 
 llm_order = 0
@@ -82,6 +82,10 @@ discussion_prompt_with_search = ChatPromptTemplate.from_messages(
             Get to the point first and expand if necessary.
 
             Count each turn and put [Turn n/10] at the only beginning of your discussion only once.
+
+            Important: Match your response language to the topic language:
+            - If the topic is in Korean, respond in Korean
+            - If the topic is in English, respond in English
             ---
             Topic: {topic}
             """,
@@ -131,7 +135,9 @@ discussion_prompt = ChatPromptTemplate.from_messages(
 
             Do not repeat the same point already mentioned.
 
-            Important: If the topic is written in Korean, respond in Korean. If the topic is in English, respond in English. Match the language of your response to the language of the topic.
+            Important: Match your response language to the topic language:
+            - If the topic is in Korean, respond in Korean
+            - If the topic is in English, respond in English
             ---
             Topic: {topic}
             """,
@@ -263,8 +269,8 @@ def get_discussion(topic, discussion, chat_history, llm, use_search=True):
     )
 
 
-def get_summary(topic, chat_history):
-    chain = summary_prompt | deepseek | StrOutputParser()
+def get_summary(topic, chat_history, llm):
+    chain = summary_prompt | llm | StrOutputParser()
     return chain.stream(
         {
             "chat_history": chat_history,
@@ -317,4 +323,11 @@ if st.button("Start Discussion"):
 
     ## summarize the discussion
     with st.chat_message("user"):
-        st.write_stream(get_summary(topic, st.session_state.messages))
+        st.write("## DeepSeek-Reasoner")
+        st.write_stream(get_summary(topic, st.session_state.messages, llm = deepseek_r))
+
+        st.write("## Solar-Summarizer")
+        st.write_stream(get_summary(topic, st.session_state.messages, llm = solar))
+
+        st.write("## Deepseek-Summarizer")
+        st.write_stream(get_summary(topic, st.session_state.messages, llm = deepseek))
