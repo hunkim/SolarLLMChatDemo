@@ -287,8 +287,8 @@ if False:
         role = "AI" if isinstance(message, AIMessage) else "Human"
         with st.chat_message(role):
             st.markdown(message.content)
-
-topic = st.text_input("Discussion Topic", "How can I win LLM/AI hackathon?")
+default_topic = "Where is the best place to visit in Korea?"
+topic = st.text_input("Discussion Topic", default_topic)
 use_search = st.toggle("Use Search", False)
 if st.button("Start Discussion"):
     st.session_state.messages = []
