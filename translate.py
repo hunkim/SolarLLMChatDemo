@@ -180,8 +180,9 @@ if 'translated_text' not in st.session_state:
 # Main App Header
 st.markdown("""
     <div class="app-header">
-        <h1>Document Translator Pro</h1>
+        <h1>Document Translator Pro (Beta)</h1>
         <p>Professional-grade document translation powered by AI</p>
+        <p style="color: #ff6b6b; font-size: 0.9rem; margin-top: 10px;">⚠️ This is a temporary service and may be discontinued without prior notice.</p>
     </div>
 """, unsafe_allow_html=True)
 
@@ -337,7 +338,7 @@ with tab1:
 
 with tab2:
     st.markdown("""
-        ### About Document Translator Pro
+        ### About Document Translator Pro (Beta)
         
         Our professional document translation service uses state-of-the-art AI technology to provide:
         
@@ -345,6 +346,8 @@ with tab2:
         - 📄 Support for PDF documents
         - 🔒 Secure document handling
         - 💯 High-quality output
+        
+        > ⚠️ **Please Note**: This is a temporary service and may be discontinued without prior notice.
         
         ### How to Use
         
