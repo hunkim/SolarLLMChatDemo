@@ -85,7 +85,7 @@ def is_cache_valid(timestamp: str, hours: int = 1) -> bool:
     return datetime.now() - cached_time < timedelta(hours=hours)
 
 
-def search(keyword: str) -> Dict[str, Any]:
+def search(keyword: str, prompt: str="") -> Dict[str, Any]:
     """Perform a search using Google's Generative AI with caching"""
     # Initialize cache
     db = get_cache_db()
@@ -109,7 +109,7 @@ def search(keyword: str) -> Dict[str, Any]:
     # Generate content
     response = client.models.generate_content(
         model=model_id,
-        contents=keyword,
+        contents=prompt + keyword,
         config=GenerateContentConfig(
             tools=[google_search_tool],
         ),
@@ -126,28 +126,31 @@ def search(keyword: str) -> Dict[str, Any]:
     if hasattr(response.candidates[0], "grounding_metadata"):
         metadata = response.candidates[0].grounding_metadata
 
+
         # Create a mapping of chunk indices to web sources
         web_sources = {}
-        for i, chunk in enumerate(metadata.grounding_chunks):
-            if chunk.web:
-                web_sources[i] = {
-                    "title": chunk.web.title,
-                    "url": chunk.web.uri,
-                    "contexts": [],
-                }
+        if metadata.grounding_chunks:
+            for i, chunk in enumerate(metadata.grounding_chunks):
+                if chunk.web:
+                    web_sources[i] = {
+                        "title": chunk.web.title,
+                        "url": chunk.web.uri,
+                        "contexts": [],
+                    }
 
         # st.json(metadata)
 
         # Add text segments to corresponding sources
-        for support in metadata.grounding_supports:
-            for chunk_idx in support.grounding_chunk_indices:
-                if chunk_idx in web_sources:
-                    web_sources[chunk_idx]["contexts"].append(
-                        {
-                            "text": support.segment.text,
-                            "confidence": support.confidence_scores[0],
-                        }
-                    )
+        if metadata.grounding_supports:
+            for support in metadata.grounding_supports:
+                for chunk_idx in support.grounding_chunk_indices:
+                    if chunk_idx in web_sources:
+                        web_sources[chunk_idx]["contexts"].append(
+                            {
+                                "text": support.segment.text,
+                                "confidence": support.confidence_scores[0],
+                            }
+                        )
 
         # Convert to list and filter out sources with no contexts
         sources = [source for source in web_sources.values() if source["contexts"]]
@@ -431,6 +434,24 @@ def perform_search_and_display(search_query: str, is_suggestion: bool = False) -
                 unsafe_allow_html=True
             )
 
+    ref_query = """For a given query and provided search results, analyze and return a JSON object containing the full list of sources.
+    The output should be in the following format:
+    {
+        "sources": [
+            {
+                "url": "source URL",
+                "title": "source title",
+                "content": "full original content without modifications or summaries"
+            }
+        ]
+    }
+    
+   
+    Important: Return the content exactly as provided in the source, without summarization or modification.
+    
+    Query: """ + search_query 
+    ref_result = search(ref_query)
+    st.json(ref_result)
     # Sources with improved design
     if result.get("sources"):
         sources = [s for s in result["sources"] if s.get("title") and s.get("url")]

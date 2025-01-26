@@ -84,6 +84,9 @@ jaisearch: $(BROWSER_VENV)/bin/activate
 jaichat: $(BROWSER_VENV)/bin/activate
 	$(STREAMLIT) run jaichat.py
 
+translate: $(BROWSER_VENV)/bin/activate
+	$(STREAMLIT) run translate.py
+
 clean:
 	rm -rf __pycache__
 	rm -rf $(VENV)
