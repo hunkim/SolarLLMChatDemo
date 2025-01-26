@@ -327,10 +327,11 @@ with tab1:
         html_content += "</body></html>"
         
         # Add download button
+        download_filename = os.path.splitext(uploaded_file.name)[0] + '.translated.html'
         st.download_button(
             label="📥 Download Translation as HTML",
             data=html_content,
-            file_name="translated_document.html",
+            file_name=download_filename,
             mime="text/html"
         )
 
