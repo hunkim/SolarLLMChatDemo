@@ -110,7 +110,7 @@ if prompt := st.chat_input("What is up?"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        with st.status("Thinking..."):
+        with st.status("Reasoning..."):
             reasoning = get_reasoning(prompt, st.session_state.messages)
             st.write(reasoning)
         prompt = f"""<reasoning>{reasoning}</reasoning>
