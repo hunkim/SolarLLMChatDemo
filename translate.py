@@ -101,6 +101,22 @@ st.markdown("""
 # Initialize translation model
 translation_llm = Chat(model="translation-enko")
 
+def translate_to_korean(text: str) -> str:
+    """
+    Translate text to Korean using the translation model with a specific system prompt.
+    """
+    system_prompt = """You are a professional translator specializing in Korean translations.
+    Translate the following text to Korean while maintaining the original meaning and nuance.
+    Ensure the translation is natural and fluent in Korean."""
+    
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": text}
+    ]
+    
+    response = translation_llm.invoke(messages)
+    return response.content
+
 class FileCache:
     def __init__(self):
         self.cache = self._load_cache()
@@ -283,14 +299,13 @@ with tab1:
                         translated_content = cached_translation
                     else:
                         # Translate if not in cache
-                        translated_content = translation_llm.invoke(doc.page_content)
+                        translated_content = translate_to_korean(doc.page_content)
                         # Store in cache
                         st.session_state.file_cache.store_translation(
                             uploaded_file.name,
                             doc.page_content,
-                            translated_content.content
+                            translated_content
                         )
-                        translated_content = translated_content.content
 
                     translations.append(translated_content)
                 st.markdown(translated_content, unsafe_allow_html=True)

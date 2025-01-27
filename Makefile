@@ -87,6 +87,9 @@ jaichat: $(BROWSER_VENV)/bin/activate
 translate: $(BROWSER_VENV)/bin/activate
 	$(STREAMLIT) run translate.py
 
+solar-r: $(BROWSER_VENV)/bin/activate
+	$(STREAMLIT) run solar-r.py
+
 clean:
 	rm -rf __pycache__
 	rm -rf $(VENV)
