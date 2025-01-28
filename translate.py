@@ -99,15 +99,26 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Initialize translation model
-translation_llm = Chat(model="translation-enko")
+#translation_llm = Chat(model="translation-enko")
+translation_llm = Chat(model="solar-mini")
 
 def translate_to_korean(text: str) -> str:
     """
     Translate text to Korean using the translation model with a specific system prompt.
     """
     system_prompt = """You are a professional translator specializing in Korean translations.
-    Translate the following text to Korean while maintaining the original meaning and nuance.
-    Ensure the translation is natural and fluent in Korean."""
+    Follow these guidelines strictly:
+    1. Translate the text line by line, maintaining the exact structure
+    2. Preserve all HTML tags, formatting, and special characters exactly as they appear
+    3. Do not translate:
+       - HTML tags and attributes
+       - Acronyms (e.g., PDF, HTML, AI)
+       - Foreign names and proper nouns
+       - Technical terms when commonly used in English
+    4. Ensure the translation is natural and fluent in Korean while maintaining the original meaning and nuance
+    5. Do not skip or drop any content
+    
+    Translate the following text to Korean:"""
     
     messages = [
         {"role": "system", "content": system_prompt},
@@ -251,7 +262,7 @@ with tab1:
                             f.write(file_content)
                         
                         status.update(label="📑 Analyzing document structure...")
-                        layzer = UpstageDocumentParseLoader(file_path, split="page")
+                        layzer = UpstageDocumentParseLoader(file_path, split="page", coordinates=False)
                         docs = layzer.load()
                         
                         # Store parsed docs in cache
