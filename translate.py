@@ -110,7 +110,7 @@ translation_llm = Chat(model="solar-pro")
 
 def translate_to_korean(text: str) -> str:
     """
-    Translate text to Korean using the translation model with a specific system prompt.
+    Translate text to Korean using the translation model with streaming output.
     """
     max_retries = 3
     for attempt in range(max_retries):
@@ -134,16 +134,15 @@ def translate_to_korean(text: str) -> str:
                 {"role": "user", "content": text}
             ]
             
-            response = translation_llm.invoke(messages)
-            if not response or not response.content:
-                raise ValueError("Empty translation response")
-            return response.content
+            # Change to streaming response
+            response_stream = translation_llm.stream(messages)
+            return response_stream
         except Exception as e:
             logger.error(f"Translation attempt {attempt + 1} failed: {str(e)}")
             if attempt == max_retries - 1:
                 st.error(f"Translation failed after {max_retries} attempts: {str(e)}")
                 return f"Translation Error: {str(e)}"
-            time.sleep(1)  # Wait before retry
+            time.sleep(1)
 
 class FileCache:
     def __init__(self):
@@ -370,6 +369,8 @@ with tab1:
             with col2:
                 st.markdown('<div class="translation-content">', unsafe_allow_html=True)
                 st.markdown("**Translated Text**")
+                
+                empty_container = st.empty()
                 with st.spinner(""):
                     try:
                         # Check cache first
@@ -380,10 +381,19 @@ with tab1:
                         
                         if cached_translation is not None:
                             translated_content = cached_translation
+                            st.markdown(translated_content, unsafe_allow_html=True)
                         else:
-                            # Translate if not in cache
-                            translated_content = translate_to_korean(doc.page_content)
-                            # Store in cache
+                            # Stream translation if not in cache
+                            response_stream = translate_to_korean(doc.page_content)
+                            translated_content = ""
+                            
+                            # Use write_stream for streaming output
+                            for chunk in response_stream:
+                                if chunk and chunk.content:
+                                    translated_content += chunk.content
+                                    empty_container.markdown(translated_content, unsafe_allow_html=True)
+                            
+                            # Store complete translation in cache
                             st.session_state.file_cache.store_translation(
                                 uploaded_file.name,
                                 doc.page_content,
@@ -391,7 +401,6 @@ with tab1:
                             )
 
                         translations.append(translated_content)
-                        st.markdown(translated_content, unsafe_allow_html=True)
                     except Exception as e:
                         error_message = f"Translation error on page {i+1}: {str(e)}"
                         st.error(error_message)
