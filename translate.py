@@ -6,8 +6,14 @@ from langchain_upstage import UpstageDocumentParseLoader
 import tempfile, os
 import hashlib
 import json
+import time
+import logging
 from typing import Dict, Optional, Tuple
 from langchain.schema import Document
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Page configuration
 st.set_page_config(
@@ -100,109 +106,190 @@ st.markdown("""
 
 # Initialize translation model
 #translation_llm = Chat(model="translation-enko")
-translation_llm = Chat(model="solar-mini")
+translation_llm = Chat(model="solar-pro")
 
 def translate_to_korean(text: str) -> str:
     """
     Translate text to Korean using the translation model with a specific system prompt.
     """
-    system_prompt = """You are a professional translator specializing in Korean translations.
-    Follow these guidelines strictly:
-    1. Translate the text line by line, maintaining the exact structure
-    2. Preserve all HTML tags, formatting, and special characters exactly as they appear
-    3. Do not translate:
-       - HTML tags and attributes
-       - Acronyms (e.g., PDF, HTML, AI)
-       - Foreign names and proper nouns
-       - Technical terms when commonly used in English
-    4. Ensure the translation is natural and fluent in Korean while maintaining the original meaning and nuance
-    5. Do not skip or drop any content
-    
-    Translate the following text to Korean:"""
-    
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": text}
-    ]
-    
-    response = translation_llm.invoke(messages)
-    return response.content
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            system_prompt = """You are a professional translator specializing in Korean translations.
+            Follow these guidelines strictly:
+            1. Translate the text line by line, maintaining the exact structure
+            2. Preserve all HTML tags, formatting, and special characters exactly as they appear
+            3. Do not translate:
+               - HTML tags and attributes
+               - Acronyms (e.g., PDF, HTML, AI)
+               - Foreign names and proper nouns
+               - Technical terms when commonly used in English
+            4. Ensure the translation is natural and fluent in Korean while maintaining the original meaning and nuance
+            5. Do not skip or drop any content
+            
+            Translate the following text to Korean:"""
+            
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": text}
+            ]
+            
+            response = translation_llm.invoke(messages)
+            if not response or not response.content:
+                raise ValueError("Empty translation response")
+            return response.content
+        except Exception as e:
+            logger.error(f"Translation attempt {attempt + 1} failed: {str(e)}")
+            if attempt == max_retries - 1:
+                st.error(f"Translation failed after {max_retries} attempts: {str(e)}")
+                return f"Translation Error: {str(e)}"
+            time.sleep(1)  # Wait before retry
 
 class FileCache:
     def __init__(self):
         self.cache = self._load_cache()
+        self._cleanup_old_entries()
     
     def _get_cache_path(self):
         return ".file_cache.json"
+    
+    def _cleanup_old_entries(self, max_age_days=7):
+        """Remove cache entries older than specified days"""
+        current_time = time.time()
+        entries_to_remove = []
+        for filename in self.cache:
+            if 'timestamp' in self.cache[filename]:
+                age = (current_time - self.cache[filename]['timestamp']) / (24 * 3600)
+                if age > max_age_days:
+                    entries_to_remove.append(filename)
+        
+        for filename in entries_to_remove:
+            del self.cache[filename]
+        self._save_cache()
     
     def _load_cache(self):
         try:
             if os.path.exists(self._get_cache_path()):
                 with open(self._get_cache_path(), 'r') as f:
                     return json.load(f)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Error loading cache: {str(e)}")
         return {}
     
     def _save_cache(self):
-        with open(self._get_cache_path(), 'w') as f:
-            json.dump(self.cache, f)
+        try:
+            with open(self._get_cache_path(), 'w') as f:
+                json.dump(self.cache, f)
+        except Exception as e:
+            logger.error(f"Error saving cache: {str(e)}")
 
     def get_cached_docs(self, filename: str, content: bytes) -> Optional[list]:
         """Check if parsed documents are in cache"""
-        file_hash = hashlib.sha256(content).hexdigest()
-        
-        if filename in self.cache:
-            cached_data = self.cache[filename]
-            if cached_data['hash'] == file_hash and 'docs' in cached_data:
-                return [Document(page_content=doc['page_content'], metadata=doc['metadata']) 
-                       for doc in cached_data['docs']]
+        try:
+            file_hash = hashlib.sha256(content).hexdigest()
+            
+            if filename in self.cache:
+                cached_data = self.cache[filename]
+                if cached_data['hash'] == file_hash and 'docs' in cached_data:
+                    return [Document(page_content=doc['page_content'], metadata=doc['metadata']) 
+                           for doc in cached_data['docs']]
+        except Exception as e:
+            logger.error(f"Error retrieving from cache: {str(e)}")
         return None
 
     def store_docs(self, filename: str, content: bytes, docs: list) -> None:
         """Store parsed documents in cache"""
-        file_hash = hashlib.sha256(content).hexdigest()
-        serializable_docs = [{'page_content': doc.page_content, 'metadata': doc.metadata} 
-                           for doc in docs]
-        
-        if filename not in self.cache:
-            self.cache[filename] = {}
+        try:
+            file_hash = hashlib.sha256(content).hexdigest()
+            serializable_docs = [{'page_content': doc.page_content, 'metadata': doc.metadata} 
+                               for doc in docs]
             
-        self.cache[filename].update({
-            'hash': file_hash,
-            'docs': serializable_docs,
-            'translations': {}  # Initialize translations dict
-        })
-        self._save_cache()
+            if filename not in self.cache:
+                self.cache[filename] = {}
+                
+            self.cache[filename].update({
+                'hash': file_hash,
+                'docs': serializable_docs,
+                'translations': {},
+                'timestamp': time.time()
+            })
+            self._save_cache()
+        except Exception as e:
+            logger.error(f"Error storing docs in cache: {str(e)}")
 
     def get_cached_translation(self, filename: str, page_content: str) -> Optional[str]:
         """Get cached translation for a specific page content"""
-        if filename in self.cache:
-            page_hash = hashlib.sha256(page_content.encode()).hexdigest()
-            return self.cache[filename]['translations'].get(page_hash)
+        try:
+            if filename in self.cache:
+                page_hash = hashlib.sha256(page_content.encode()).hexdigest()
+                return self.cache[filename]['translations'].get(page_hash)
+        except Exception as e:
+            logger.error(f"Error retrieving translation from cache: {str(e)}")
         return None
 
     def store_translation(self, filename: str, page_content: str, translation: str) -> None:
         """Store translation for a specific page content"""
-        if filename not in self.cache:
-            self.cache[filename] = {'translations': {}}
-        
-        page_hash = hashlib.sha256(page_content.encode()).hexdigest()
-        if 'translations' not in self.cache[filename]:
-            self.cache[filename]['translations'] = {}
+        try:
+            if filename not in self.cache:
+                self.cache[filename] = {'translations': {}}
             
-        self.cache[filename]['translations'][page_hash] = translation
-        self._save_cache()
+            page_hash = hashlib.sha256(page_content.encode()).hexdigest()
+            if 'translations' not in self.cache[filename]:
+                self.cache[filename]['translations'] = {}
+                
+            self.cache[filename]['translations'][page_hash] = translation
+            self._save_cache()
+        except Exception as e:
+            logger.error(f"Error storing translation in cache: {str(e)}")
 
-# Initialize session state variables at the start of the app
-if 'file_cache' not in st.session_state:
-    st.session_state.file_cache = FileCache()
-if 'docs' not in st.session_state:
-    st.session_state.docs = None
-if 'translation_complete' not in st.session_state:
-    st.session_state.translation_complete = False
-if 'translated_text' not in st.session_state:
-    st.session_state.translated_text = None
+def process_large_document(file_content: bytes) -> list:
+    """Process large documents safely"""
+    docs = []
+    with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp_file:
+        try:
+            temp_file.write(file_content)
+            temp_file.flush()
+            
+            layzer = UpstageDocumentParseLoader(temp_file.name, split="page", coordinates=False)
+            docs = layzer.load()
+                
+            return docs
+        finally:
+            try:
+                os.unlink(temp_file.name)  # Clean up temp file
+            except Exception as e:
+                logger.error(f"Error cleaning up temporary file: {str(e)}")
+
+def validate_file(uploaded_file) -> Tuple[bool, str]:
+    """Validate uploaded file"""
+    if not uploaded_file.name.lower().endswith('.pdf'):
+        return False, "Please upload a PDF file."
+    
+    try:
+        file_content = uploaded_file.getvalue()
+        if not file_content.startswith(b'%PDF'):
+            return False, "Invalid PDF file format."
+        return True, ""
+    except Exception as e:
+        return False, f"File validation error: {str(e)}"
+
+def initialize_session_state():
+    """Initialize all session state variables"""
+    initial_state = {
+        'file_cache': FileCache(),
+        'docs': None,
+        'translation_complete': False,
+        'translated_text': None,
+        'current_file': None,
+        'translation_progress': 0
+    }
+    
+    for key, value in initial_state.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+
+# Initialize session state
+initialize_session_state()
 
 # Main App Header
 st.markdown("""
@@ -217,67 +304,51 @@ st.markdown("""
 tab1, tab2 = st.tabs(["📤 Upload & Translate", "ℹ️ About"])
 
 with tab1:
-    # Upload Section
-    # st.markdown('<div class="upload-zone">', unsafe_allow_html=True)
-    
-    # Add file size limit (10MB = 10 * 1024 * 1024 bytes)
-    MAX_FILE_SIZE = 10 * 1024 * 1024
-    
     uploaded_file = st.file_uploader(
         "Drop your PDF here or click to upload",
-        type=["pdf"],  # Explicitly use list format
+        type=["pdf"],
         help="Maximum file size: 10MB",
         accept_multiple_files=False
     )
 
     if uploaded_file is not None:
-        # Validate file size
-        if uploaded_file.size > MAX_FILE_SIZE:
-            st.error("📤 File is too large! Maximum size is 10MB.")
-        elif not uploaded_file.name.lower().endswith('.pdf'):
-            st.error("📤 Please upload a PDF file.")
+        is_valid, error_message = validate_file(uploaded_file)
+        if not is_valid:
+            st.error(f"📤 {error_message}")
         else:
             st.success(f"📤 File '{uploaded_file.name}' uploaded successfully!")
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+            
+            if uploaded_file and not uploaded_file.name in st.session_state:
+                with st.status("Processing document...", expanded=True) as status:
+                    try:
+                        file_content = uploaded_file.getvalue()
+                        
+                        # Check document cache first
+                        cached_docs = st.session_state.file_cache.get_cached_docs(uploaded_file.name, file_content)
+                        
+                        if cached_docs is not None:
+                            status.update(label="📑 Loading from cache...")
+                            st.session_state.docs = cached_docs
+                            st.session_state[uploaded_file.name] = True
+                            st.session_state.translation_complete = False
+                            st.success("✅ Document loaded from cache")
+                        else:
+                            status.update(label="📑 Analyzing document structure...")
+                            docs = process_large_document(file_content)
+                            
+                            # Store parsed docs in cache
+                            st.session_state.file_cache.store_docs(uploaded_file.name, file_content, docs)
+                            
+                            st.session_state.docs = docs
+                            st.session_state[uploaded_file.name] = True
+                            st.session_state.translation_complete = False
+                            
+                            st.success("✅ Document ready for translation")
+                    except Exception as e:
+                        st.error(f"Error processing document: {str(e)}")
+                        logger.error(f"Document processing error: {str(e)}")
 
-    if uploaded_file and not uploaded_file.name in st.session_state:
-        with st.status("Processing document...", expanded=True) as status:
-            try:
-                file_content = uploaded_file.getvalue()
-                
-                # Check document cache first
-                cached_docs = st.session_state.file_cache.get_cached_docs(uploaded_file.name, file_content)
-                
-                if cached_docs is not None:
-                    status.update(label="📑 Loading from cache...")
-                    st.session_state.docs = cached_docs
-                    st.session_state[uploaded_file.name] = True
-                    st.session_state.translation_complete = False
-                    st.success("✅ Document loaded from cache")
-                else:
-                    with tempfile.TemporaryDirectory() as temp_dir:
-                        file_path = os.path.join(temp_dir, uploaded_file.name)
-                        with open(file_path, "wb") as f:
-                            f.write(file_content)
-                        
-                        status.update(label="📑 Analyzing document structure...")
-                        layzer = UpstageDocumentParseLoader(file_path, split="page", coordinates=False)
-                        docs = layzer.load()
-                        
-                        # Store parsed docs in cache
-                        st.session_state.file_cache.store_docs(uploaded_file.name, file_content, docs)
-                        
-                        st.session_state.docs = docs
-                        st.session_state[uploaded_file.name] = True
-                        st.session_state.translation_complete = False
-                    
-                    st.success("✅ Document ready for translation")
-            except Exception as e:
-                st.error(f"Error processing document: {str(e)}")
-    
     # Translation Display
-    # Collect all translations
     translations = []
     if st.session_state.docs:
         if not st.session_state.translation_complete:
@@ -300,26 +371,33 @@ with tab1:
                 st.markdown('<div class="translation-content">', unsafe_allow_html=True)
                 st.markdown("**Translated Text**")
                 with st.spinner(""):
-                    # Check cache first
-                    cached_translation = st.session_state.file_cache.get_cached_translation(
-                        uploaded_file.name,
-                        doc.page_content
-                    )
-                    
-                    if cached_translation is not None:
-                        translated_content = cached_translation
-                    else:
-                        # Translate if not in cache
-                        translated_content = translate_to_korean(doc.page_content)
-                        # Store in cache
-                        st.session_state.file_cache.store_translation(
+                    try:
+                        # Check cache first
+                        cached_translation = st.session_state.file_cache.get_cached_translation(
                             uploaded_file.name,
-                            doc.page_content,
-                            translated_content
+                            doc.page_content
                         )
+                        
+                        if cached_translation is not None:
+                            translated_content = cached_translation
+                        else:
+                            # Translate if not in cache
+                            translated_content = translate_to_korean(doc.page_content)
+                            # Store in cache
+                            st.session_state.file_cache.store_translation(
+                                uploaded_file.name,
+                                doc.page_content,
+                                translated_content
+                            )
 
-                    translations.append(translated_content)
-                st.markdown(translated_content, unsafe_allow_html=True)
+                        translations.append(translated_content)
+                        st.markdown(translated_content, unsafe_allow_html=True)
+                    except Exception as e:
+                        error_message = f"Translation error on page {i+1}: {str(e)}"
+                        st.error(error_message)
+                        logger.error(error_message)
+                        translations.append(f"Error: {str(e)}")
+                
                 st.markdown('</div>', unsafe_allow_html=True)
             
             st.markdown('</div>', unsafe_allow_html=True)
@@ -330,37 +408,38 @@ with tab1:
         st.session_state.translation_complete = True
         
         # Create HTML content for download
-        html_content = """
-        <html>
-        <head>
-            <style>
-                body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-                .translation { margin-bottom: 30px; }
-                .page-number { font-weight: bold; color: #1E88E5; margin-bottom: 10px; }
-                .translated-text { line-height: 1.6; }
-            </style>
-        </head>
-        <body>
-        """
-        
-        for i, translation in enumerate(translations):
-            html_content += f"""
-            <div class="translation">
-                <div class="page-number">Page {i+1}</div>
-                <div class="translated-text">{translation}</div>
-            </div>
+        if translations:
+            html_content = """
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+                    .translation { margin-bottom: 30px; }
+                    .page-number { font-weight: bold; color: #1E88E5; margin-bottom: 10px; }
+                    .translated-text { line-height: 1.6; }
+                </style>
+            </head>
+            <body>
             """
-        
-        html_content += "</body></html>"
-        
-        # Add download button
-        download_filename = os.path.splitext(uploaded_file.name)[0] + '.translated.html'
-        st.download_button(
-            label="📥 Download Translation as HTML",
-            data=html_content,
-            file_name=download_filename,
-            mime="text/html"
-        )
+            
+            for i, translation in enumerate(translations):
+                html_content += f"""
+                <div class="translation">
+                    <div class="page-number">Page {i+1}</div>
+                    <div class="translated-text">{translation}</div>
+                </div>
+                """
+            
+            html_content += "</body></html>"
+            
+            # Add download button
+            download_filename = os.path.splitext(uploaded_file.name)[0] + '.translated.html'
+            st.download_button(
+                label="📥 Download Translation as HTML",
+                data=html_content,
+                file_name=download_filename,
+                mime="text/html"
+            )
 
 with tab2:
     st.markdown("""
@@ -381,6 +460,12 @@ with tab2:
         2. Wait for the automatic translation process
         3. Review the side-by-side translation
         4. Download the translated document
+        
+        ### Limitations
+        
+        - Maximum file size: 10MB
+        - Maximum pages per document: 50
+        - Supported file format: PDF only
     """)
 
 # Footer
