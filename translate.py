@@ -10,7 +10,7 @@ import time
 import logging
 from typing import Dict, Optional, Tuple
 from langchain.schema import Document
-
+from pdf_util import is_ocr_pdf, PDFType
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -248,8 +248,9 @@ def process_large_document(file_content: bytes) -> list:
         try:
             temp_file.write(file_content)
             temp_file.flush()
-            
-            layzer = UpstageDocumentParseLoader(temp_file.name, split="page", coordinates=False)
+            ocr = "auto" if is_ocr_pdf(temp_file.name) == PDFType.DIGITAL else "force"
+            st.info(f"OCR: {ocr}")
+            layzer = UpstageDocumentParseLoader(temp_file.name, split="page", coordinates=False, ocr=ocr)
             docs = layzer.load()
                 
             return docs

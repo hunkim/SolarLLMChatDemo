@@ -305,6 +305,62 @@ def generate_quick_answer(keyword: str, results: str) -> str:
         return ""
 
 
+def display_sources(search_query: str, result: Dict[str, Any]) -> None:
+    """
+    Query for full list of sources and display them with improved design.
+    
+    This function:
+      1. Performs a reference search to get the full sources data
+      2. Displays the resulting JSON for debugging/visualization
+      3. Filters and displays the sources (if available) in a formatted manner
+    """
+    # Generate the reference query that asks for full, unmodified content details.
+    ref_query = (
+        "For a given query and provided search results, analyze and return a JSON object containing the full list of sources.\n"
+        "The output should be in the following format:\n"
+        "{\n"
+        '    "sources": [\n'
+        "        {\n"
+        '            "url": "source URL",\n'
+        '            "title": "source title",\n'
+        '            "content": "full original content without modifications or summaries"\n'
+        "        }\n"
+        "    ]\n"
+        "}\n\n"
+        "Important: Return the content exactly as provided in the source, without summarization or modification.\n\n"
+        "Query: " + search_query
+    )
+    # Perform the reference search using the global search function.
+    ref_result = search(ref_query)
+    st.json(ref_result)
+    
+    # Check if sources are available in the main result.
+    if result.get("sources"):
+        # Filter out any sources that don't have both a title and URL.
+        sources = [s for s in result["sources"] if s.get("title") and s.get("url")]
+        if sources:
+            st.markdown("### Sources")
+            # Enumerate over the valid sources and display each one.
+            for idx, source in enumerate(sources, 1):
+                content = " ".join([context["text"] for context in source["contexts"]])[:200] + "..."
+                st.markdown(
+                    f"""
+                    <div class="source-item">
+                        <div class="source-header">
+                            <span class="source-number">{idx}</span>
+                            <a href="{source['url']}" target="_blank" class="source-link">
+                                {source['title']}
+                            </a>
+                        </div>
+                        <div class="source-content">
+                            {content}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+
 def perform_search_and_display(search_query: str, is_suggestion: bool = False) -> None:
     """
     Perform search and display results with enhanced source list design
@@ -434,49 +490,7 @@ def perform_search_and_display(search_query: str, is_suggestion: bool = False) -
                 unsafe_allow_html=True
             )
 
-    ref_query = """For a given query and provided search results, analyze and return a JSON object containing the full list of sources.
-    The output should be in the following format:
-    {
-        "sources": [
-            {
-                "url": "source URL",
-                "title": "source title",
-                "content": "full original content without modifications or summaries"
-            }
-        ]
-    }
-    
-   
-    Important: Return the content exactly as provided in the source, without summarization or modification.
-    
-    Query: """ + search_query 
-    ref_result = search(ref_query)
-    st.json(ref_result)
-    # Sources with improved design
-    if result.get("sources"):
-        sources = [s for s in result["sources"] if s.get("title") and s.get("url")]
-        if sources:
-            st.markdown("### Sources")
-            for idx, source in enumerate(sources, 1):
-                content = " ".join([context["text"] for context in source["contexts"]])[:200] + "..."
-                st.markdown(
-                    f"""
-                    <div class="source-item">
-                        <div class="source-header">
-                            <span class="source-number">{idx}</span>
-                            <a href="{source['url']}" target="_blank" class="source-link">
-                                {source['title']}
-                            </a>
-                        </div>
-                        <div class="source-content">
-                            {content}
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-
+    # display_sources(search_query, result)
 
 
 def main():
