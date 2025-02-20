@@ -70,8 +70,41 @@ def format_response_to_markdown(text: str) -> str:
 
 
 def get_cache_db():
-    """Initialize TinyDB database for caching"""
-    return TinyDB('search_cache.json')
+    """Initialize TinyDB database for caching with error handling"""
+    try:
+        return TinyDB('search_cache.json')
+    except json.JSONDecodeError:
+        # If cache is corrupted, delete it and create new
+        try:
+            os.remove('search_cache.json')
+        except OSError:
+            pass
+        return TinyDB('search_cache.json')
+
+
+def safe_cache_operation(func):
+    """Decorator to safely handle cache operations"""
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except (json.JSONDecodeError, OSError):
+            # If any cache operation fails, delete cache and retry once
+            try:
+                os.remove('search_cache.json')
+            except OSError:
+                pass
+            # Return None to indicate cache miss
+            return None
+    return wrapper
+
+
+@safe_cache_operation
+def get_cached_result(db, Entry, cache_key):
+    """Safely get cached result"""
+    try:
+        return db.get(Entry.cache_key == cache_key)
+    except:
+        return None
 
 
 def generate_cache_key(query: str) -> str:
@@ -92,8 +125,8 @@ def search(keyword: str, prompt: str="") -> Dict[str, Any]:
     cache_key = generate_cache_key(keyword)
     Entry = Query()
     
-    # Check cache first
-    cached_result = db.get(Entry.cache_key == cache_key)
+    # Check cache first with error handling
+    cached_result = get_cached_result(db, Entry, cache_key)
     if cached_result and is_cache_valid(cached_result['timestamp']):
         return cached_result['data']
 
@@ -101,7 +134,6 @@ def search(keyword: str, prompt: str="") -> Dict[str, Any]:
  
     # Initialize the Google Generative AI client
     client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-    model_id = "gemini-2.0-flash-exp"
     model_id = "gemini-2.0-flash"
 
     # Configure Google Search tool
@@ -158,18 +190,22 @@ def search(keyword: str, prompt: str="") -> Dict[str, Any]:
 
     formatted_text = format_response_to_markdown(text)
 
-    # Store result in cache before returning
-    cache_data = {
-        'cache_key': cache_key,
-        'data': {
-            "summary": formatted_text,
-            "sources": sources,
-            "query": keyword,
-            "web_search_query": metadata.web_search_queries,
-        },
-        'timestamp': datetime.now().isoformat()
-    }
-    db.upsert(cache_data, Entry.cache_key == cache_key)
+    # Store result in cache with error handling
+    try:
+        cache_data = {
+            'cache_key': cache_key,
+            'data': {
+                "summary": formatted_text,
+                "sources": sources,
+                "query": keyword,
+                "web_search_query": metadata.web_search_queries,
+            },
+            'timestamp': datetime.now().isoformat()
+        }
+        db.upsert(cache_data, Entry.cache_key == cache_key)
+    except:
+        # If cache write fails, continue without caching
+        pass
 
     return cache_data['data']
 
@@ -183,7 +219,7 @@ def generate_search_query(keyword: str, results: str) -> List[str]:
     Entry = Query()
     
     # Check cache first
-    cached_result = db.get(Entry.cache_key == cache_key)
+    cached_result = get_cached_result(db, Entry, cache_key)
     if cached_result and is_cache_valid(cached_result['timestamp']):
         return cached_result['data']
 
@@ -251,7 +287,7 @@ def generate_quick_answer(keyword: str, results: str) -> str:
     Entry = Query()
     
     # Check cache first
-    cached_result = db.get(Entry.cache_key == cache_key)
+    cached_result = get_cached_result(db, Entry, cache_key)
     if cached_result and is_cache_valid(cached_result['timestamp']):
         return cached_result['data']
 
