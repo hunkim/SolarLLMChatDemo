@@ -102,6 +102,7 @@ def search(keyword: str, prompt: str="") -> Dict[str, Any]:
     # Initialize the Google Generative AI client
     client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
     model_id = "gemini-2.0-flash-exp"
+    model_id = "gemini-2.0-flash"
 
     # Configure Google Search tool
     google_search_tool = Tool(google_search=GoogleSearch())
@@ -189,6 +190,8 @@ def generate_search_query(keyword: str, results: str) -> List[str]:
     # Original suggestion generation logic
     try:
         llm = ChatUpstage(model="solar-mini", model_kwargs={"response_format":{"type":"json_object"}})
+        llm = ChatUpstage(model="solar-mini")
+
         prompt = ChatPromptTemplate.from_messages(
             [
                 (
@@ -254,6 +257,8 @@ def generate_quick_answer(keyword: str, results: str) -> str:
 
     try:
         llm = ChatUpstage(model="solar-pro", model_kwargs={"response_format":{"type":"json_object"}})
+        llm = ChatUpstage(model="solar-mini")
+
         prompt = ChatPromptTemplate.from_messages([
             (
                 "system",
@@ -304,8 +309,44 @@ def generate_quick_answer(keyword: str, results: str) -> str:
         print(f"Quick answer generation error: {e}")
         return ""
 
+def show_sources(result:Dict[str, Any]) -> None:
+    # Sources with improved design
+    if result.get("sources"):
+        sources = [s for s in result["sources"] if s.get("title") and s.get("url")]
+        if sources:
+            st.markdown("### Sources")
+            for idx, source in enumerate(sources, 1):
+                content = " ".join([context["text"] for context in source["contexts"]])[:200] + "..."
+                st.markdown(
+                    f"""
+                    <div class="source-item">
+                        <div class="source-header">
+                            <span class="source-number">{idx}</span>
+                            <a href="{source['url']}" target="_blank" class="source-link">
+                                {source['title']}
+                            </a>
+                        </div>
+                        <div class="source-content">
+                            {content}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-def display_sources(search_query: str, result: Dict[str, Any]) -> None:
+
+def sources_to_citations(result:Dict[str, Any]) -> None:
+    if result.get("sources"):
+        sources = [s for s in result["sources"] if s.get("title") and s.get("url")]
+        if sources:
+            citations = []
+            for idx, source in enumerate(sources, 1):
+                content = " ".join([context["text"] for context in source["contexts"]])
+                citations.append(f"{idx}. {source['title']}: {content}\n\n")
+            
+            return "\n\n".join(citations)
+
+def get_full_sources(search_query: str, result: Dict[str, Any]) -> None:
     """
     Query for full list of sources and display them with improved design.
     
@@ -365,6 +406,20 @@ def perform_search_and_display(search_query: str, is_suggestion: bool = False) -
     """
     Perform search and display results with enhanced source list design
     """
+
+        # Add share button
+    share_url = f"?q={urllib.parse.quote(search_query)}"
+    st.markdown(
+        f"""
+        <div style="text-align: center;">
+            <a href="{share_url}" class="share-button" style="cursor: pointer; color: white; text-decoration: none;">
+                🔗 Share Results
+            </a>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
     # CSS with improved source list styling
     st.markdown("""
         <style>
@@ -443,8 +498,12 @@ def perform_search_and_display(search_query: str, is_suggestion: bool = False) -
         </style>
     """, unsafe_allow_html=True)
 
+
     web_search_query_spot = st.empty()
     summary_spot = st.empty()
+    result_spot = st.empty()
+    suggested_queries_spot = st.empty()
+
     # Main search
     with st.spinner("Searching..."):
         result = search(search_query)
@@ -470,8 +529,15 @@ def perform_search_and_display(search_query: str, is_suggestion: bool = False) -
                 st.markdown(f'<div class="search-query-item">{query}</div>', unsafe_allow_html=True)
 
     if result["summary"]:
-        st.markdown(result["summary"])
+        result_spot.markdown(result["summary"])
 
+
+    show_sources(result)
+
+    citations = sources_to_citations(result)
+    citation_added_text = fill_citations(result["summary"], citations)
+    result_spot.markdown(citation_added_text)
+    
     # Quick answer (if available)
     quick_answer = generate_quick_answer(search_query, result["summary"])
     if quick_answer:
@@ -480,18 +546,55 @@ def perform_search_and_display(search_query: str, is_suggestion: bool = False) -
             unsafe_allow_html=True
         )
 
+
     # Related searches (only if there are suggestions)
     suggested_queries = generate_search_query(search_query, result["summary"])
     if suggested_queries and len(suggested_queries) > 0:
-        cols = st.columns(min(len(suggested_queries[:3]), 3))
+        cols = suggested_queries_spot.columns(min(len(suggested_queries[:3]), 3))
         for col, query in zip(cols, suggested_queries[:3]):
             col.markdown(
                 f'<a href="?q={urllib.parse.quote(query)}" class="suggestion-link">{query}</a>',
                 unsafe_allow_html=True
             )
 
-    # display_sources(search_query, result)
+  
+def fill_citations(text: str, citations: list) -> str:
+    """Add citation numbers to text based on provided citations list.
+    
+    Args:
+        text: The original text to add citations to
+        citations: List of citation objects with text content to match
+    
+    Returns:
+        Text with citation numbers added in [n] format
+    """
+    llm = ChatUpstage(model="solar-pro")
+    prompt = ChatPromptTemplate.from_messages([
+        (
+            "system",
+            """You are a citation assistant. Your task is to add citation numbers to text by matching content with provided citations.
 
+            Rules:
+            1. Do not modify the original text
+            2. Only add citation numbers in [n] format where appropriate
+            3. Add citations where text closely matches citation content
+            4. Multiple citations can be added to the same statement if relevant [1,2]
+            5. Citations should be added at the end of relevant sentences or claims
+            
+            Example:
+            Text: "The sky is blue due to Rayleigh scattering. This effect causes shorter wavelengths to scatter more."
+            Citations: 
+            1. "Rayleigh scattering explains the blue color of the sky"
+            2. "Short wavelength blue light is scattered more by the atmosphere"
+            
+            Output: "The sky is blue due to Rayleigh scattering [1]. This effect causes shorter wavelengths to scatter more [2]."
+            """,
+        ),
+        ("user", "Text: {text}\nCitations: {citations}\nAdd appropriate citation numbers to the text while preserving the original content exactly."),
+    ])
+    
+    chain = prompt | llm | StrOutputParser()
+    return chain.invoke({"text": text, "citations": citations})
 
 def main():
     """Main function to run the Streamlit app"""
@@ -505,17 +608,16 @@ def main():
         </p>
     """, unsafe_allow_html=True)
 
-    # Custom CSS for a clean, Google-like UI
+    # Custom CSS for the UI, including improved share button styling
     st.markdown("""
         <style>
             /* Hide Streamlit header and footer */
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
-            
-            /* Center content */
+
             .block-container {padding-top: 2rem; padding-bottom: 2rem;}
-            
-            /* Search bar */
+
+            /* Search bar styling */
             .search-bar {
                 display: flex;
                 justify-content: center;
@@ -555,25 +657,27 @@ def main():
                 color: #202124;
             }
             
-            /* Suggested queries */
-            .suggested-queries {
-                display: flex;
-                justify-content: center;
-                flex-wrap: wrap;
-                margin-top: 1rem;
+            /* Improved Share Button Styling */
+            .share-button {
+                display: inline-block;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 24px;
+                background-color: #1a73e8;
+                color: #fff;
+                text-decoration: none;
+                font-size: 1rem;
+                font-weight: 600;
+                transition: background-color 0.3s;
             }
-            
-            /* Sources */
-            .sources-container {
-                max-height: 600px;
-                overflow-y: auto;
-                padding-right: 10px;
+            .share-button:hover {
+                background-color: #1664c1;
             }
         </style>
     """, unsafe_allow_html=True)
 
-    # Search bar
-    search_col1, search_col2 = st.columns([3,1])
+    # Search bar layout - input field and search button
+    search_col1, search_col2 = st.columns([3, 1])
     with search_col1:
         search_input = st.text_input(
             "",
@@ -581,20 +685,19 @@ def main():
             placeholder="Search anything...",
             key="search_input"
         )
-        
-        # Check if Enter key is pressed in the search input
+        # Synchronize the session state with URL parameter "q"
         if st.session_state.get("search_input"):
             if st.session_state["search_input"] != st.query_params.get("q", ""):
                 st.query_params["q"] = st.session_state["search_input"]
                 st.rerun()
-    
+
     with search_col2:
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Search"):
             st.query_params["q"] = st.session_state["search_input"]
             st.rerun()
 
-    # Only perform search if query parameter exists in URL
+    # Only perform search if the URL contains a non-empty 'q' parameter
     if "q" in st.query_params:
         search_query = st.query_params["q"]
         if not search_query.strip():
