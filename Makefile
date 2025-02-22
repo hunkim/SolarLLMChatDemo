@@ -90,6 +90,9 @@ translate: $(BROWSER_VENV)/bin/activate
 solar-r: $(BROWSER_VENV)/bin/activate
 	$(STREAMLIT) run solar-r.py
 
+fc: $(BROWSER_VENV)/bin/activate
+	$(STREAMLIT) run fc.py
+
 clean:
 	rm -rf __pycache__
 	rm -rf $(VENV)
