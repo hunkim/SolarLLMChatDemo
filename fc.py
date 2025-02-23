@@ -154,6 +154,8 @@ result = fc.invoke(claim)
         with st.spinner("🔄 Analyzing statement... Please allow a few moments while we search and verify the information"):
             result = get_fc(claim)
             
+            # Let's show it's done
+            st.success("🔍 Analysis complete!")
             # Show raw JSON in a collapsible section
             with st.expander("🔍 View Raw Response", expanded=False):
                 st.json(result)
