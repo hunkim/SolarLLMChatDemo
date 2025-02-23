@@ -123,7 +123,7 @@ result = fc.invoke(claim)
         check_button = st.button("🔍 Verify Facts", type="primary", use_container_width=True)
 
     if check_button and claim:
-        with st.spinner("🔄 Analyzing facts..."):
+        with st.spinner("🔄 Analyzing statement... Please allow a few moments while we search and verify the information"):
             result = get_fc(claim)
             claims = json.loads(result.content)
             
