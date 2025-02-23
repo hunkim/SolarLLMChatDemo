@@ -135,9 +135,10 @@ return result
                 
                 st.markdown(f"""
                     <div class='claim-container {verdict_class}'>
-                        <h3 style='margin-bottom: 0.5rem;'>Claim Analysis</h3>
-                        <p style='font-size: 1.1em; margin-bottom: 1rem;'>{claim_info['claim']}</p>
-                        <h2 style='text-align: right;'>{display_verdict(claim_info['verdict'])}</h2>
+                        <div style='display: flex; justify-content: space-between; align-items: center;'>
+                            <h3 style='margin: 0;'>{claim_info['claim']}</h3>
+                            <h3 style='margin: 0; margin-left: 1rem;'>{display_verdict(claim_info['verdict'])}</h3>
+                        </div>
                         <p><strong>Analysis:</strong> {claim_info['explanation']}</p>
                     </div>
                 """, unsafe_allow_html=True)
