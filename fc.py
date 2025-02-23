@@ -102,7 +102,6 @@ fc = ChatUpstage(
 )
                 
 result = fc.invoke(claim)
-return result
 """, language="python")
 
     st.warning(
