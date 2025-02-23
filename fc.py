@@ -5,21 +5,49 @@ from google import genai
 from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
 import json
 from langchain_upstage import ChatUpstage 
-from langchain_core.output_parsers import StrOutputParser
+from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import AIMessage, HumanMessage
 from datetime import datetime
 
 
-def get_fc(claim:str):
+def get_fc(claim: str):
     fc = ChatUpstage(
         model="solar-google-fc",
         api_key=st.secrets["UPSTAGE_API_KEY"],
         base_url="https://fc.toy.x.upstage.ai/",
+        model_kwargs={"stream": True},
     )
 
-    result = fc.invoke(claim)
-    return result
+
+    results = []
+
+    chain = fc | StrOutputParser()
+
+    # Stream and accumulate responses
+    for chunk in chain.stream(claim):
+        if chunk:
+            json_chunk = json.loads(chunk)
+            results.append(json_chunk)  
+            # Display the current chunk
+            verdict_class = "claim-true" if json_chunk.get('verdict') == "TRUE" else (
+                "claim-false" if json_chunk.get('verdict') == "FALSE" else "claim-uncertain"
+            )
+            
+            st.markdown(f"""
+                <div class='claim-container {verdict_class}'>
+                    <div style='display: flex; justify-content: space-between; align-items: center;'>
+                        <h4 style='margin: 0;'>{json_chunk.get('claim', '')}</h4>
+                        <h4 style='margin: 0; margin-left: 1rem;'>{display_verdict(json_chunk.get('verdict', ''))}</h4>
+                    </div>
+                    <p><strong>Analysis:</strong> {json_chunk.get('explanation', '')}</p>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            if json_chunk.get('sources'):
+                display_sources(json_chunk['sources'])
+
+    return results
 
 def display_verdict(verdict):
     if verdict == "TRUE":
@@ -98,7 +126,7 @@ from langchain_upstage import ChatUpstage
 fc = ChatUpstage(
     model="solar-google-fc",
     api_key=st.secrets["UPSTAGE_API_KEY"], # Get your API key from https://console.upstage.ai/
-    base_url="https://fc.toy.x.upstage.ai/",
+    base_url="https://fc.toy.x.upstage.ai/,
 )
                 
 result = fc.invoke(claim)
@@ -125,28 +153,10 @@ result = fc.invoke(claim)
     if check_button and claim:
         with st.spinner("🔄 Analyzing statement... Please allow a few moments while we search and verify the information"):
             result = get_fc(claim)
-            claims = json.loads(result.content)
             
-            for claim_info in claims:
-                verdict_class = "claim-true" if claim_info['verdict'] == "TRUE" else (
-                    "claim-false" if claim_info['verdict'] == "FALSE" else "claim-uncertain"
-                )
-                
-                st.markdown(f"""
-                    <div class='claim-container {verdict_class}'>
-                        <div style='display: flex; justify-content: space-between; align-items: center;'>
-                            <h4 style='margin: 0;'>{claim_info['claim']}</h4>
-                            <h4 style='margin: 0; margin-left: 1rem;'>{display_verdict(claim_info['verdict'])}</h4>
-                        </div>
-                        <p><strong>Analysis:</strong> {claim_info['explanation']}</p>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                display_sources(claim_info['sources'])
-
             # Show raw JSON in a collapsible section
             with st.expander("🔍 View Raw Response", expanded=False):
-                st.json(result.content)
+                st.json(result)
 
 if __name__ == "__main__":
     main()
