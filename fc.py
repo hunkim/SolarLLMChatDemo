@@ -24,29 +24,37 @@ def get_fc(claim: str):
 
     chain = fc | StrOutputParser()
 
+    claim_count = 0
     # Stream and accumulate responses
-    for chunk in chain.stream(claim):
+    for idx, chunk in enumerate(chain.stream(claim)):
         if chunk:
             json_chunk = json.loads(chunk)
             results.append(json_chunk)  
             # Display the current chunk
-            verdict_class = "claim-true" if json_chunk.get('verdict') == "TRUE" else (
-                "claim-false" if json_chunk.get('verdict') == "FALSE" else "claim-uncertain"
-            )
+            if 'verdict' in json_chunk:
+                verdict_class = "claim-true" if json_chunk.get('verdict') == "TRUE" else (
+                    "claim-false" if json_chunk.get('verdict') == "FALSE" else "claim-uncertain"
+                )
             
-            st.markdown(f"""
-                <div class='claim-container {verdict_class}'>
-                    <div style='display: flex; justify-content: space-between; align-items: center;'>
-                        <h4 style='margin: 0;'>{json_chunk.get('claim', '')}</h4>
-                        <h4 style='margin: 0; margin-left: 1rem;'>{display_verdict(json_chunk.get('verdict', ''))}</h4>
+                st.markdown(f"""
+                    <div class='claim-container {verdict_class}'>
+                        <div style='display: flex; justify-content: space-between; align-items: center;'>
+                            <h4 style='margin: 0;'>[{idx}/{claim_count}] {json_chunk.get('claim', '')}</h4>
+                            <h4 style='margin: 0; margin-left: 1rem;'>{display_verdict(json_chunk.get('verdict', ''))}</h4>
+                        </div>
+                        <p><strong>Analysis:</strong> {json_chunk.get('explanation', '')}</p>
                     </div>
-                    <p><strong>Analysis:</strong> {json_chunk.get('explanation', '')}</p>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            if json_chunk.get('sources'):
-                display_sources(json_chunk['sources'])
+                """, unsafe_allow_html=True)
+                
+                if json_chunk.get('sources'):
+                    display_sources(json_chunk['sources'])
 
+            if 'claims' in json_chunk:
+                # Show header for claims to be checked
+                st.markdown("### Claims to be verified:")
+                claim_count = len(json_chunk['claims'])
+                for idx, claim in enumerate(json_chunk['claims'], 1):
+                    st.markdown(f"{idx}. {claim}")
     return results
 
 def display_verdict(verdict):
