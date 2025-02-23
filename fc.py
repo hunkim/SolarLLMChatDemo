@@ -168,7 +168,6 @@ def search(keyword: str) -> Dict[str, Any]:
                 config=GenerateContentConfig(
                     tools=[google_search_tool],
                     temperature=0.2,  # Lower temperature for factual responses
-                    response_mime_type='application/json',  
                 ),
             )
 
