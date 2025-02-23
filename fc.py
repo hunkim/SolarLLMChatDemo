@@ -158,20 +158,43 @@ def search(keyword: str) -> Dict[str, Any]:
     # Configure Google Search tool
     google_search_tool = Tool(google_search=GoogleSearch())
 
-    # Generate content with structured output requirement
-    response = client.models.generate_content(
-        model=model_id,
-        contents=prompt,
-        config=GenerateContentConfig(
-            tools=[google_search_tool],
-            temperature=0.2,  # Lower temperature for more factual responses
-        ),
-    )
+    # Try up to 3 times to get a valid JSON response
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model=model_id,
+                contents=prompt,
+                config=GenerateContentConfig(
+                    tools=[google_search_tool],
+                    temperature=0.2,  # Lower temperature for factual responses
+                ),
+            )
 
-    return response
+            content_text = response.candidates[0].content.parts[0].text
+            # Remove the markdown code block markers if present
+            content_text = content_text.strip('`json\n')
+            result_json = json.loads(content_text)
+            
+            # Display verdict with color
+            verdict = result_json.get("verdict", "UNCERTAIN")
+            if verdict == "TRUE":
+                st.success(f"Verdict: {verdict}")
+            elif verdict == "FALSE":
+                st.error(f"Verdict: {verdict}")
+            else:
+                st.warning(f"Verdict: {verdict}")
 
-    
-  
+            return response
+
+        except json.JSONDecodeError:
+            if attempt < max_retries - 1:
+                st.warning(f"Failed to parse JSON response (attempt {attempt + 1}/{max_retries}). Retrying...")
+                continue
+            else:
+                st.error("Failed to get valid JSON response after all attempts")
+                return response
+
 def split_claims(text: str) -> List[str]:
     """Split text into independent, self-contained claims.
     
