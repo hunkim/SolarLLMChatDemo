@@ -174,16 +174,7 @@ def search(keyword: str) -> Dict[str, Any]:
             content_text = response.candidates[0].content.parts[0].text
             # Remove the markdown code block markers if present
             content_text = content_text.strip('`json\n')
-            result_json = json.loads(content_text)
-            
-            # Display verdict with color
-            verdict = result_json.get("verdict", "UNCERTAIN")
-            if verdict == "TRUE":
-                st.success(f"Verdict: {verdict}")
-            elif verdict == "FALSE":
-                st.error(f"Verdict: {verdict}")
-            else:
-                st.warning(f"Verdict: {verdict}")
+            _ = json.loads(content_text)
 
             return response
 
