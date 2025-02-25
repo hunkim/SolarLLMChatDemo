@@ -48,7 +48,7 @@ def get_fc(claim: str):
                     st.markdown(f"""
                         <div class='claim-container {verdict_class}'>
                             <div style='display: flex; justify-content: space-between; align-items: center;'>
-                                <h4 style='margin: 0;'>[{idx+1}/{claim_count}] {json_chunk.get('claim', '')}</h4>
+                                <h4 style='margin: 0;'>[{idx}/{claim_count}] {json_chunk.get('claim', '')}</h4>
                                 <h4 style='margin: 0; margin-left: 1rem;'>{display_verdict(json_chunk.get('verdict', ''))}</h4>
                             </div>
                             <p><strong>Analysis:</strong> {json_chunk.get('explanation', '')}</p>
