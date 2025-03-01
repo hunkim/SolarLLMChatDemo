@@ -93,6 +93,9 @@ solar-r: $(BROWSER_VENV)/bin/activate
 fc: $(BROWSER_VENV)/bin/activate
 	$(STREAMLIT) run fc.py
 
+namecard: $(VENV)/bin/activate
+	$(STREAMLIT) run namecard.py
+
 clean:
 	rm -rf __pycache__
 	rm -rf $(VENV)
