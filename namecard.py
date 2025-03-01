@@ -10,7 +10,7 @@ import json
 
 # Set page title
 st.set_page_config(page_title="Business Card OCR", layout="wide")
-st.title("Business Card OCR to Contact")
+st.title("Business Card Reader")
 
 # Function to extract text from image using Upstage API
 def extract_info_from_image(image):
@@ -155,7 +155,7 @@ if "UPSTAGE_API_KEY" not in st.secrets:
     else:
         st.warning("Please enter your Upstage API key in the sidebar to continue.")
 
-st.header("Upload a Business Card Image")
+st.header("Upload Business Card")
 
 # Simple file uploader without options
 uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
