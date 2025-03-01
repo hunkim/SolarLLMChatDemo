@@ -173,10 +173,6 @@ if uploaded_file is not None and "UPSTAGE_API_KEY" in st.secrets:
         extracted_info = extract_info_from_image(image)
     
     if extracted_info:
-        with info_col:
-            st.subheader("Extracted Information")
-            st.json(extracted_info)
-        
         # Create form for editing extracted information
         st.subheader("Edit Contact Information")
         
