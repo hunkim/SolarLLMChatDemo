@@ -157,22 +157,12 @@ if "UPSTAGE_API_KEY" not in st.secrets:
 
 st.header("Upload a Business Card Image")
 
-# Create a radio button for selecting input method
-input_method = st.radio("Choose input method:", ["Upload Image", "Take Photo"], horizontal=True, label_visibility="collapsed")
+# Simple file uploader without options
+uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
-if input_method == "Upload Image":
-    uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"], key="uploader")
-    camera_file = None
-else:  # Take Photo
-    camera_file = st.camera_input("Capture business card", key="camera")
-    uploaded_file = None
-
-# Determine which input method was used
-input_file = uploaded_file or camera_file
-
-if input_file is not None and "UPSTAGE_API_KEY" in st.secrets:
+if uploaded_file is not None and "UPSTAGE_API_KEY" in st.secrets:
     # Display the uploaded image
-    image = Image.open(input_file)
+    image = Image.open(uploaded_file)
     img_col, info_col = st.columns(2)
     
     with img_col:
